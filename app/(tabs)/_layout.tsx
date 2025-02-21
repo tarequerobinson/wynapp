@@ -7,7 +7,11 @@ import {
   BellRing,
   Calendar,
   MessageCircle,
+  BotMessageSquare,
 } from '@tamagui/lucide-icons'
+
+
+
 
 export default function TabLayout() {
   const theme = useTheme()
@@ -49,61 +53,40 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Newspaper color={color} size={20} />,
         }}
       />
-      <Tabs.Screen
-        name="modal"
-        options={{
-          title: 'Chat',
-          headerShown: false,
-          tabBarIcon: ({ focused, size }) => (
-            <YStack
-              animation="quick"
-              {...(focused && {
-                animateOnly: ['transform'],
-                scale: 1.1,
-                rotate: '0deg',  // Initial state
-                keyframes: {
-                  '0%': { rotate: '0deg' },
-                  '25%': { rotate: '5deg' },
-                  '75%': { rotate: '-5deg' },
-                  '100%': { rotate: '0deg' },
-                },
-                animationDuration: '500ms',
-                animationIterationCount: 'infinite',
-              })}
-              justifyContent="center"
-              alignItems="center"
-            >
-              
-              
-                            <MessageCircle
-                size={size * 1.7}
-                color={focused ? theme.blue10?.val : theme.gray7?.val}
-                backgroundColor={focused ? theme.purple8?.val : theme.gray5?.val}
-                borderWidth={3}
-                borderColor={focused ? theme.purple10?.val : theme.gray7?.val}
-                borderRadius={size * 0.85}
-                padding={6}
-                shadowColor={focused ? theme.gray8?.val : 'transparent'}
-                shadowOffset={{ width: 0, height: 4 }}
-                shadowOpacity={0.9}
-                shadowRadius={6}
-                elevation={focused ? 8 : 2}
-              >
-                <MessageCircle
-                  size={size}
-                  color={focused ? theme.white?.val : theme.gray10?.val}
-                  strokeWidth={focused ? 2.5 : 2}
-                />
-              </MessageCircle>
-            </YStack>
-          ),
-          tabBarLabelStyle: {
-            fontSize: 12,
-            fontWeight: '700',
-            marginBottom: 2,
-          },
-        }}
-      />
+<Tabs.Screen
+  name="modal"
+  options={{
+    title: 'Chat',
+    headerShown: false,
+    tabBarIcon: ({ focused, size }) => (
+      <BotMessageSquare
+        size={size * 2}
+        color={focused ? theme.blue10?.val : theme.gray7?.val}
+        backgroundColor={focused ? theme.purple8?.val : theme.gray5?.val}
+        borderWidth={4}
+        borderColor={theme.background?.val}  // Creates a gap effect
+        borderRadius={size}
+        padding={8}
+        position="absolute"  // Floats above tab bar
+        top={-10}  // Raises it above other icons
+        shadowColor={theme.gray8?.val}
+        shadowOffset={{ width: 0, height: 4 }}
+        shadowOpacity={0.9}
+        shadowRadius={6}
+      >
+        <BotMessageSquare
+          size={size}
+          color={focused ? theme.white?.val : theme.gray10?.val}
+        />
+      </BotMessageSquare>
+    ),    tabBarLabelStyle: {
+      fontSize: 12,
+      fontWeight: '700',  // Bolder label
+      marginBottom: 2,
+    },
+  }}
+/>
+
       <Tabs.Screen
         name="alerts"
         options={{
@@ -122,14 +105,3 @@ export default function TabLayout() {
   )
 }
 
-const styles = StyleSheet.create({
-  wiggle: {
-    animation: 'wiggle 0.5s ease-in-out infinite',
-  },
-  '@keyframes wiggle': {
-    '0%': { transform: 'rotate(0deg)' },
-    '25%': { transform: 'rotate(5deg)' },
-    '75%': { transform: 'rotate(-5deg)' },
-    '100%': { transform: 'rotate(0deg)' },
-  },
-})
