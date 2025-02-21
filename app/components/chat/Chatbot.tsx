@@ -57,7 +57,7 @@ export const Chatbot = ({
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Gemini API setup
-  const API_KEY = 'AIzaSyDVLvB5wmOgt9Wn6HpeINlqFg_pdxWbFJo'; // Replace with your actual Gemini API key
+  const API_KEY = ''; // Replace with your actual Gemini API key
   const genAI = new GoogleGenerativeAI(API_KEY);
   const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
