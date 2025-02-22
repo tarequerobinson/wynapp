@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -6,21 +6,16 @@ import {
   YStack,
   Input,
   Button,
-  Label,
   Switch,
   ScrollView,
-  Card,
-  Adapt,
   Select,
   Sheet,
-  AnimatePresence,
-  Separator,
-  useTheme,
 } from 'tamagui';
-import { Bell, Plus, X, Trash } from '@tamagui/lucide-icons';
+import { Plus, X, Bell, ArrowUp, ArrowDown, Mail, MessageSquare, Calendar } from '@tamagui/lucide-icons';
 
-type Alert = {
+type PriceAlert = {
   id: string;
+  type: 'price';
   symbol: string;
   condition: 'above' | 'below';
   price: number;
@@ -28,6 +23,18 @@ type Alert = {
   sms: boolean;
   createdAt: Date;
 };
+
+type EventAlert = {
+  id: string;
+  type: 'event';
+  symbol: string;
+  event: 'earnings' | 'dividend' | 'split';
+  email: boolean;
+  sms: boolean;
+  createdAt: Date;
+};
+
+type Alert = PriceAlert | EventAlert;
 
 type Stock = {
   symbol: string;
@@ -41,105 +48,98 @@ const MOCK_STOCKS: Stock[] = [
   { symbol: 'PJAM', price: 80.0, change: 1.2 },
 ];
 
-// Mock data for pre-existing alerts
 const MOCK_ALERTS: Alert[] = [
-  {
-    id: 'alert1',
-    symbol: 'NCBFG',
-    condition: 'above',
-    price: 155.00,
-    email: true,
-    sms: false,
-    createdAt: new Date('2025-02-15T10:00:00Z'),
-  },
-  {
-    id: 'alert2',
-    symbol: 'JMMBGL',
-    condition: 'below',
-    price: 45.00,
-    email: true,
-    sms: true,
-    createdAt: new Date('2025-02-16T14:30:00Z'),
-  },
-  {
-    id: 'alert3',
-    symbol: 'PJAM',
-    condition: 'above',
-    price: 82.00,
-    email: false,
-    sms: true,
-    createdAt: new Date('2025-02-17T09:15:00Z'),
-  },
+  { id: 'alert1', type: 'price', symbol: 'NCBFG', condition: 'above', price: 155.00, email: true, sms: false, createdAt: new Date('2025-02-15') },
+  { id: 'alert2', type: 'event', symbol: 'JMMBGL', event: 'earnings', email: true, sms: true, createdAt: new Date('2025-02-16') },
+  { id: 'alert3', type: 'price', symbol: 'PJAM', condition: 'above', price: 82.00, email: false, sms: true, createdAt: new Date('2025-02-17') },
 ];
 
 export default function AlertsScreen() {
-  const theme = useTheme();
   const [alerts, setAlerts] = useState<Alert[]>(MOCK_ALERTS);
+  const [alertType, setAlertType] = useState<'price' | 'event'>('price');
   const [symbol, setSymbol] = useState('');
   const [condition, setCondition] = useState<'above' | 'below'>('above');
   const [price, setPrice] = useState('');
+  const [event, setEvent] = useState<'earnings' | 'dividend' | 'split'>('earnings');
   const [email, setEmail] = useState(true);
   const [sms, setSms] = useState(false);
-  const [showCreateSheet, setShowCreateSheet] = useState(false);
-  const [isDark, setIsDark] = useState(theme.name === 'dark');
+  const [showForm, setShowForm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  useEffect(() => {
-    setIsDark(theme.name === 'dark');
-  }, [theme]);
-
-  const SelectDemo = () => (
+  const SelectCondition = () => (
     <Select
-      id="condition"
       value={condition}
       onValueChange={(val) => setCondition(val as 'above' | 'below')}
     >
-      <Select.Trigger
-        width="100%"
-        iconAfter={<Text>▼</Text>}
-        borderWidth={1}
-        borderColor="$borderColor"
-        backgroundColor="$background"
-        color="$color"
-      >
-        <Select.Value placeholder="Select condition" />
+      <Select.Trigger width={90} backgroundColor="$gray2" borderWidth={0}>
+        <Select.Value />
       </Select.Trigger>
-      <Adapt when="sm" platform="touch">
-        <Sheet modal dismissOnSnapToBottom snapPoints={[50]}>
-          <Sheet.Frame padding="$4" backgroundColor="$background">
-            <Adapt.Contents />
-          </Sheet.Frame>
-          <Sheet.Overlay />
-        </Sheet>
-      </Adapt>
-      <Select.Content zIndex={200000}>
-        <Select.Viewport minWidth={200} backgroundColor="$background">
-          <Select.Group>
-            <Select.Label color="$color">Condition</Select.Label>
-            <Select.Item value="above" index={0}>
-              <Select.ItemText>Price Above</Select.ItemText>
-            </Select.Item>
-            <Select.Item value="below" index={1}>
-              <Select.ItemText>Price Below</Select.ItemText>
-            </Select.Item>
-          </Select.Group>
+      <Select.Content>
+        <Select.Viewport minWidth={90} backgroundColor="$gray2">
+          <Select.Item index={0} value="above">
+            <Select.ItemText>Above</Select.ItemText>
+          </Select.Item>
+          <Select.Item index={1} value="below">
+            <Select.ItemText>Below</Select.ItemText>
+          </Select.Item>
+        </Select.Viewport>
+      </Select.Content>
+    </Select>
+  );
+
+  const SelectEvent = () => (
+    <Select
+      value={event}
+      onValueChange={(val) => setEvent(val as 'earnings' | 'dividend' | 'split')}
+    >
+      <Select.Trigger width={120} backgroundColor="$gray2" borderWidth={0}>
+        <Select.Value />
+      </Select.Trigger>
+      <Select.Content>
+        <Select.Viewport minWidth={120} backgroundColor="$gray2">
+          <Select.Item index={0} value="earnings">
+            <Select.ItemText>Earnings</Select.ItemText>
+          </Select.Item>
+          <Select.Item index={1} value="dividend">
+            <Select.ItemText>Dividend</Select.ItemText>
+          </Select.Item>
+          <Select.Item index={2} value="split">
+            <Select.ItemText>Split</Select.ItemText>
+          </Select.Item>
         </Select.Viewport>
       </Select.Content>
     </Select>
   );
 
   const handleCreateAlert = () => {
-    if (!symbol || !price) return;
-    const newAlert: Alert = {
-      id: Math.random().toString(36).substr(2, 9),
-      symbol: symbol.toUpperCase(),
-      condition,
-      price: Number.parseFloat(price),
-      email,
-      sms,
-      createdAt: new Date(),
-    };
+    if (!symbol) return;
+    let newAlert: Alert;
+    if (alertType === 'price' && !price) return;
+    if (alertType === 'price') {
+      newAlert = {
+        id: Math.random().toString(36).substr(2, 9),
+        type: 'price',
+        symbol: symbol.toUpperCase(),
+        condition,
+        price: Number.parseFloat(price),
+        email,
+        sms,
+        createdAt: new Date(),
+      };
+    } else {
+      newAlert = {
+        id: Math.random().toString(36).substr(2, 9),
+        type: 'event',
+        symbol: symbol.toUpperCase(),
+        event,
+        email,
+        sms,
+        createdAt: new Date(),
+      };
+    }
     setAlerts([...alerts, newAlert]);
-    setShowCreateSheet(false);
+    setShowForm(false);
     resetForm();
   };
 
@@ -147,240 +147,310 @@ export default function AlertsScreen() {
     setSymbol('');
     setPrice('');
     setCondition('above');
+    setEvent('earnings');
+    setAlertType('price');
     setEmail(true);
     setSms(false);
   };
 
-  const handleAddButtonPress = () => {
-    setShowCreateSheet(true);
+  const handleDeleteAlert = (id: string) => {
+    setShowDeleteConfirm(id);
   };
+
+  const confirmDelete = () => {
+    if (showDeleteConfirm) {
+      setAlerts(alerts.filter((a) => a.id !== showDeleteConfirm));
+      setShowDeleteConfirm(null);
+    }
+  };
+
+  const toggleNotification = (id: string, type: 'email' | 'sms') => {
+    setAlerts(
+      alerts.map((alert) =>
+        alert.id === id
+          ? { ...alert, [type]: !alert[type] }
+          : alert
+      )
+    );
+  };
+
+  const sortedAlerts = [...alerts].sort((a, b) =>
+    sortOrder === 'desc'
+      ? b.createdAt.getTime() - a.createdAt.getTime()
+      : a.createdAt.getTime() - b.createdAt.getTime()
+  );
 
   return (
     <View flex={1} backgroundColor="$background">
-      <ScrollView flex={1} contentContainerStyle={{ flexGrow: 1 }}>
-        <YStack flex={1} padding="$2" space="$4">
-          {/* Header */}
-          <XStack alignItems="center" justifyContent="space-between">
-            <Text fontSize="$8" fontWeight="bold" color="$color">
-              Stock Alerts
-            </Text>
-            <Text color="$gray10" fontSize="$3">
-              {alerts.length} active
-            </Text>
-          </XStack>
-
-{/* Stock Ticker Row */}
-<ScrollView
-  horizontal
-  showsHorizontalScrollIndicator={false}
-  maxHeight="$12" // Adjust this value to set a maximum height (e.g., $12 = 192px in Tamagui default spacing)
->
-  <XStack space="$3" paddingBottom="$4">
-    {MOCK_STOCKS.map((stock) => (
-      <Card
-        key={stock.symbol}
-        size="$3"
-        bordered
-        borderColor="$borderColor"
-        backgroundColor="$gray2"
-        width={120}
-        height="$8" // Explicitly set a fixed height for the card (e.g., $8 = 128px)
-        shadowColor={isDark ? '$gray8' : '$gray6'}
-        shadowOffset={{ width: 0, height: 2 }}
-        shadowOpacity={isDark ? 0.2 : 0.3}
-        shadowRadius={isDark ? 3 : 4}
-        elevation={isDark ? 1 : 2}
-      >
-        <Card.Header padded>
-          <Text fontSize="$5" fontWeight="600" color="$color">
-            {stock.symbol}
+      {/* Header with Ticker */}
+      <YStack padding="$3" backgroundColor="$background">
+        <XStack alignItems="center" space="$2" marginBottom="$2">
+          <Bell size="$2" color="$gray10" />
+          <Text fontSize="$8" fontWeight="bold" color="$color">
+            Stock Alerts
           </Text>
-          <Text fontSize="$6" marginTop="$1" color="$color">
-            J${stock.price.toFixed(2)}
-          </Text>
-          <Text
-            fontSize="$3"
-            color={stock.change >= 0 ? '$green9' : '$red9'}
-          >
-            {stock.change >= 0 ? '▲' : '▼'} {Math.abs(stock.change)}%
-          </Text>
-        </Card.Header>
-      </Card>
-    ))}
-  </XStack>
-</ScrollView>
-
-
-          {/* Alerts List */}
-          <YStack flex={1} space="$3">
-            <XStack alignItems="center" space="$2">
-              <Bell size="$2" color="$gray10" />
-              <Text fontSize="$6" fontWeight="600" color="$color">
-                Active Alerts
-              </Text>
-            </XStack>
-
-            {alerts.length === 0 ? (
-              <YStack
-                flex={1}
-                alignItems="center"
-                justifyContent="center" // Center vertically when no alerts
-                padding="$4"
-                backgroundColor="$gray3"
-                borderRadius="$4"
-              >
-                <Text color="$gray10">No alerts yet</Text>
-                <Text fontSize="$3" color="$gray8" marginTop="$2">
-                  Create your first alert below
+        </XStack>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <XStack space="$3">
+            {MOCK_STOCKS.map((stock) => (
+              <XStack key={stock.symbol} space="$2" alignItems="center">
+                <Text fontSize="$5" fontWeight="600" color="$color">{stock.symbol}</Text>
+                <Text fontSize="$4" color="$gray10">J${stock.price.toFixed(2)}</Text>
+                <Text fontSize="$3" color={stock.change >= 0 ? '$green9' : '$red9'}>
+                  {stock.change >= 0 ? '+' : ''}{stock.change}%
                 </Text>
-              </YStack>
-            ) : (
-              alerts.map((alert) => (
-                <Card
-                  key={alert.id}
-                  elevate
-                  bordered
-                  padding="$3"
-                  backgroundColor="$background"
-                  borderColor="$borderColor"
-                >
-                  <XStack justifyContent="space-between" alignItems="center">
-                    <YStack flex={1}>
-                      <XStack space="$2" alignItems="center">
-                        <Text fontSize="$6" fontWeight="600" color="$color">
-                          {alert.symbol}
-                        </Text>
-                        <Text
-                          fontSize="$3"
-                          color={alert.condition === 'above' ? '$green9' : '$red9'}
-                        >
-                          {alert.condition === 'above' ? '▲' : '▼'}
-                        </Text>
-                      </XStack>
+              </XStack>
+            ))}
+          </XStack>
+        </ScrollView>
+      </YStack>
+
+      {/* Alerts List */}
+      <ScrollView flex={1}>
+        <YStack padding="$3" space="$3">
+          <XStack justifyContent="space-between" alignItems="center">
+            <Text fontSize="$5" color="$gray10">{alerts.length} Alerts</Text>
+            <Button
+              size="$2"
+              chromeless
+              onPress={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+              color="$blue10"
+            >
+              Sort {sortOrder === 'desc' ? '↑' : '↓'}
+            </Button>
+          </XStack>
+          {alerts.length === 0 ? (
+            <YStack alignItems="center" padding="$4" backgroundColor="$gray3">
+              <Bell size="$2" color="$gray8" />
+              <Text fontSize="$5" color="$gray10" marginTop="$2">No Alerts Yet</Text>
+              <Text fontSize="$3" color="$gray8" marginTop="$1">
+                Tap + to create one
+              </Text>
+            </YStack>
+          ) : (
+            sortedAlerts.map((alert) => (
+              <YStack
+                key={alert.id}
+                padding="$3"
+                backgroundColor="$background"
+                borderRadius="$4"
+                space="$2"
+              >
+                <XStack justifyContent="space-between" alignItems="center">
+                  <XStack space="$2" alignItems="center">
+                    {alert.type === 'price' ? (
+                      alert.condition === 'above' ? (
+                        <ArrowUp size="$1" color="$green9" />
+                      ) : (
+                        <ArrowDown size="$1" color="$red9" />
+                      )
+                    ) : (
+                      <Calendar size="$1" color="$blue10" />
+                    )}
+                    <YStack>
+                      <Text fontSize="$6" fontWeight="600" color="$color">{alert.symbol}</Text>
                       <Text fontSize="$4" color="$gray10">
-                        J${alert.price.toFixed(2)}
-                      </Text>
-                      <Text fontSize="$2" color="$gray8">
-                        {alert.email && 'Email'} {alert.sms && 'SMS'}
-                      </Text>
-                      <Text fontSize="$2" color="$gray10">
-                        Created: {alert.createdAt.toLocaleString()}
+                        {alert.type === 'price'
+                          ? `J$${alert.price.toFixed(2)}`
+                          : alert.event.charAt(0).toUpperCase() + alert.event.slice(1)}
                       </Text>
                     </YStack>
-                    <Button
-                      size="$2"
-                      chromeless
-                      icon={<Trash size="$1" color="$red10" />}
-                      onPress={() => setAlerts(alerts.filter((a) => a.id !== alert.id))}
-                    />
                   </XStack>
-                </Card>
-              ))
-            )}
-          </YStack>
+                  <Button
+                    size="$2"
+                    chromeless
+                    icon={<X size="$1" color="$red10" />}
+                    onPress={() => handleDeleteAlert(alert.id)}
+                  />
+                </XStack>
+                <XStack space="$3" justifyContent="flex-end">
+                  <XStack space="$1" alignItems="center">
+                    <Mail size="$1" color={alert.email ? '$blue10' : '$gray8'} />
+                    <Switch
+                      size="$1"
+                      checked={alert.email}
+                      onCheckedChange={() => toggleNotification(alert.id, 'email')}
+                      backgroundColor={alert.email ? '$blue10' : '$gray8'}
+                    >
+                      <Switch.Thumb animation="quick" backgroundColor="$white" />
+                    </Switch>
+                  </XStack>
+                  <XStack space="$1" alignItems="center">
+                    <MessageSquare size="$1" color={alert.sms ? '$blue10' : '$gray8'} />
+                    <Switch
+                      size="$1"
+                      checked={alert.sms}
+                      onCheckedChange={() => toggleNotification(alert.id, 'sms')}
+                      backgroundColor={alert.sms ? '$blue10' : '$gray8'}
+                    >
+                      <Switch.Thumb animation="quick" backgroundColor="$white" />
+                    </Switch>
+                  </XStack>
+                </XStack>
+              </YStack>
+            ))
+          )}
         </YStack>
       </ScrollView>
 
-      {/* Floating Action Button */}
+      {/* Floating Add Button */}
       <Button
-        size="$5"
         position="absolute"
         bottom="$5"
         right="$5"
-        icon={<Plus size="$2" />}
+        size="$5"
         circular
-        elevate
         backgroundColor="$blue10"
-        color="$white"
-        onPress={handleAddButtonPress}
+        icon={<Plus size="$2" color="$white" />}
+        onPress={() => setShowForm(true)}
       />
 
-      {/* Create Alert Sheet */}
+      {/* Form Sheet */}
       <Sheet
-        modal
-        open={showCreateSheet}
-        onOpenChange={setShowCreateSheet}
-        snapPoints={[85]}
+        open={showForm}
+        onOpenChange={setShowForm}
+        snapPoints={[55]}
         dismissOnSnapToBottom
-        zIndex={100000}
       >
-        <Sheet.Overlay animation="quick" opacity={0.5} />
+        <Sheet.Overlay backgroundColor="$gray10" opacity={0.5} />
         <Sheet.Frame padding="$4" backgroundColor="$background">
-          <Sheet.Handle backgroundColor="$gray5" />
           <YStack space="$4">
-            <Text fontSize="$7" fontWeight="600" color="$color">
-              New Price Alert
-            </Text>
+            <XStack justifyContent="space-between" alignItems="center">
+              <Text fontSize="$7" fontWeight="bold" color="$color">New Alert</Text>
+              <Button
+                chromeless
+                size="$2"
+                icon={<X size="$1" color="$gray10" />}
+                onPress={() => setShowForm(false)}
+              />
+            </XStack>
 
-            <YStack space="$3">
+            <XStack space="$2">
               <Input
-                size="$4"
-                placeholder="Stock Symbol (e.g., NCBFG)"
+                flex={1}
+                placeholder="Symbol"
                 value={symbol}
                 onChangeText={setSymbol}
                 autoCapitalize="characters"
-                borderWidth={1}
-                borderColor="$borderColor"
                 backgroundColor="$gray2"
+                borderWidth={0}
+                borderRadius="$2"
+                padding="$2"
                 color="$color"
               />
+              <Select
+                value={alertType}
+                onValueChange={(val) => setAlertType(val as 'price' | 'event')}
+              >
+                <Select.Trigger width={90} backgroundColor="$gray2" borderWidth={0}>
+                  <Select.Value />
+                </Select.Trigger>
+                <Select.Content>
+                  <Select.Viewport minWidth={90} backgroundColor="$gray2">
+                    <Select.Item index={0} value="price">
+                      <Select.ItemText>Price</Select.ItemText>
+                    </Select.Item>
+                    <Select.Item index={1} value="event">
+                      <Select.ItemText>Event</Select.ItemText>
+                    </Select.Item>
+                  </Select.Viewport>
+                </Select.Content>
+              </Select>
+            </XStack>
 
-              <XStack space="$3">
-                <SelectDemo />
+            {alertType === 'price' ? (
+              <XStack space="$2">
+                <SelectCondition />
                 <Input
                   flex={1}
-                  size="$4"
                   placeholder="Price (J$)"
                   keyboardType="numeric"
                   value={price}
                   onChangeText={setPrice}
-                  borderWidth={1}
-                  borderColor="$borderColor"
                   backgroundColor="$gray2"
+                  borderWidth={0}
+                  borderRadius="$2"
+                  padding="$2"
                   color="$color"
                 />
               </XStack>
+            ) : (
+              <SelectEvent />
+            )}
 
-              <YStack space="$2">
-                <Text fontSize="$4" fontWeight="600" color="$color">
-                  Notify me via
-                </Text>
-                <XStack space="$4" justifyContent="space-between">
-                  <XStack space="$2" alignItems="center">
-                    <Switch size="$2" checked={email} onCheckedChange={setEmail}>
-                      <Switch.Thumb animation="quick" />
-                    </Switch>
-                    <Text color="$color">Email</Text>
-                  </XStack>
-                  <XStack space="$2" alignItems="center">
-                    <Switch size="$2" checked={sms} onCheckedChange={setSms}>
-                      <Switch.Thumb animation="quick" />
-                    </Switch>
-                    <Text color="$color">SMS</Text>
-                  </XStack>
-                </XStack>
-              </YStack>
-            </YStack>
+            <XStack justifyContent="space-between">
+              <XStack space="$2" alignItems="center">
+                <Switch
+                  size="$2"
+                  checked={email}
+                  onCheckedChange={setEmail}
+                  backgroundColor={email ? '$blue10' : '$gray8'}
+                >
+                  <Switch.Thumb animation="quick" backgroundColor="$white" />
+                </Switch>
+                <Mail size="$1" color={email ? '$blue10' : '$gray8'} />
+                <Text fontSize="$4" color="$color">Email</Text>
+              </XStack>
+              <XStack space="$2" alignItems="center">
+                <Switch
+                  size="$2"
+                  checked={sms}
+                  onCheckedChange={setSms}
+                  backgroundColor={sms ? '$blue10' : '$gray8'}
+                >
+                  <Switch.Thumb animation="quick" backgroundColor="$white" />
+                </Switch>
+                <MessageSquare size="$1" color={sms ? '$blue10' : '$gray8'} />
+                <Text fontSize="$4" color="$color">SMS</Text>
+              </XStack>
+            </XStack>
 
-            <XStack space="$3">
+            <Button
+              backgroundColor="$blue10"
+              color="$white"
+              size="$4"
+              borderRadius="$3"
+              onPress={handleCreateAlert}
+              disabled={!symbol || (alertType === 'price' && !price)}
+              opacity={!symbol || (alertType === 'price' && !price) ? 0.6 : 1}
+            >
+              Set Alert
+            </Button>
+          </YStack>
+        </Sheet.Frame>
+      </Sheet>
+
+      {/* Delete Confirmation Sheet */}
+      <Sheet
+        open={!!showDeleteConfirm}
+        onOpenChange={(open) => !open && setShowDeleteConfirm(null)}
+        snapPoints={[30]}
+        dismissOnSnapToBottom
+      >
+        <Sheet.Overlay backgroundColor="$gray10" opacity={0.5} />
+        <Sheet.Frame padding="$4" backgroundColor="$background">
+          <YStack space="$4">
+            <Text fontSize="$6" fontWeight="bold" color="$color">
+              Are you sure you want to delete this alert?
+            </Text>
+            <XStack space="$2">
               <Button
                 flex={1}
-                size="$4"
-                onPress={handleCreateAlert}
-                backgroundColor="$blue10"
+                backgroundColor="$red10"
                 color="$white"
-                disabled={!symbol || !price}
-                opacity={!symbol || !price ? 0.6 : 1}
+                size="$4"
+                borderRadius="$3"
+                onPress={confirmDelete}
               >
-                Create
+                Yes, Delete
               </Button>
               <Button
                 flex={1}
+                backgroundColor="$gray8"
+                color="$white"
                 size="$4"
-                variant="outlined"
-                onPress={() => setShowCreateSheet(false)}
-                borderColor="$borderColor"
-                color="$color"
+                borderRadius="$3"
+                onPress={() => setShowDeleteConfirm(null)}
               >
                 Cancel
               </Button>

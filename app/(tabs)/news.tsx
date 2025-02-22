@@ -57,7 +57,7 @@ const NewsContainer = styled(YStack, {
   name: 'NewsContainer',
   flex: 1,
   backgroundColor: '$backgroundStrong',
-  paddingTop: 40,
+  paddingTop: 0,
 });
 
 const TopBar = styled(XStack, {
