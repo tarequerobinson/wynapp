@@ -41,16 +41,47 @@ const MOCK_STOCKS: Stock[] = [
   { symbol: 'PJAM', price: 80.0, change: 1.2 },
 ];
 
+// Mock data for pre-existing alerts
+const MOCK_ALERTS: Alert[] = [
+  {
+    id: 'alert1',
+    symbol: 'NCBFG',
+    condition: 'above',
+    price: 155.00,
+    email: true,
+    sms: false,
+    createdAt: new Date('2025-02-15T10:00:00Z'),
+  },
+  {
+    id: 'alert2',
+    symbol: 'JMMBGL',
+    condition: 'below',
+    price: 45.00,
+    email: true,
+    sms: true,
+    createdAt: new Date('2025-02-16T14:30:00Z'),
+  },
+  {
+    id: 'alert3',
+    symbol: 'PJAM',
+    condition: 'above',
+    price: 82.00,
+    email: false,
+    sms: true,
+    createdAt: new Date('2025-02-17T09:15:00Z'),
+  },
+];
+
 export default function AlertsScreen() {
   const theme = useTheme();
-  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>(MOCK_ALERTS);
   const [symbol, setSymbol] = useState('');
   const [condition, setCondition] = useState<'above' | 'below'>('above');
   const [price, setPrice] = useState('');
   const [email, setEmail] = useState(true);
   const [sms, setSms] = useState(false);
   const [showCreateSheet, setShowCreateSheet] = useState(false);
-  const [isDark, setIsDark] = useState(theme.name === 'dark'); // Detect dark mode
+  const [isDark, setIsDark] = useState(theme.name === 'dark');
 
   useEffect(() => {
     setIsDark(theme.name === 'dark');
@@ -72,7 +103,6 @@ export default function AlertsScreen() {
       >
         <Select.Value placeholder="Select condition" />
       </Select.Trigger>
-
       <Adapt when="sm" platform="touch">
         <Sheet modal dismissOnSnapToBottom snapPoints={[50]}>
           <Sheet.Frame padding="$4" backgroundColor="$background">
@@ -81,7 +111,6 @@ export default function AlertsScreen() {
           <Sheet.Overlay />
         </Sheet>
       </Adapt>
-
       <Select.Content zIndex={200000}>
         <Select.Viewport minWidth={200} backgroundColor="$background">
           <Select.Group>
@@ -100,7 +129,6 @@ export default function AlertsScreen() {
 
   const handleCreateAlert = () => {
     if (!symbol || !price) return;
-
     const newAlert: Alert = {
       id: Math.random().toString(36).substr(2, 9),
       symbol: symbol.toUpperCase(),
@@ -124,14 +152,13 @@ export default function AlertsScreen() {
   };
 
   const handleAddButtonPress = () => {
-    console.log('Add button pressed, showCreateSheet should be true');
     setShowCreateSheet(true);
   };
 
   return (
     <View flex={1} backgroundColor="$background">
-      <ScrollView>
-        <YStack padding="$4" space="$4">
+      <ScrollView flex={1} contentContainerStyle={{ flexGrow: 1 }}>
+        <YStack flex={1} padding="$2" space="$4">
           {/* Header */}
           <XStack alignItems="center" justifyContent="space-between">
             <Text fontSize="$8" fontWeight="bold" color="$color">
@@ -142,45 +169,50 @@ export default function AlertsScreen() {
             </Text>
           </XStack>
 
-          {/* Stock Ticker Row */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <XStack space="$3" paddingBottom="$4">
-              {MOCK_STOCKS.map((stock) => (
-                <Card
-                  key={stock.symbol}
-                  size="$3"
-                  bordered
-                  borderColor="$borderColor"
-                  backgroundColor="$gray2"
-                  width={120}
-                  // Explicit shadow properties
-                  shadowColor={isDark ? '$gray8' : '$gray6'} // Darker in light mode, subtler in dark
-                  shadowOffset={{ width: 0, height: 2 }}
-                  shadowOpacity={isDark ? 0.2 : 0.3} // More pronounced in light mode
-                  shadowRadius={isDark ? 3 : 4} // Slightly larger in light mode
-                  elevation={isDark ? 1 : 2} // Higher elevation in light mode
-                >
-                  <Card.Header padded>
-                    <Text fontSize="$5" fontWeight="600" color="$color">
-                      {stock.symbol}
-                    </Text>
-                    <Text fontSize="$6" marginTop="$1" color="$color">
-                      J${stock.price.toFixed(2)}
-                    </Text>
-                    <Text
-                      fontSize="$3"
-                      color={stock.change >= 0 ? '$green9' : '$red9'}
-                    >
-                      {stock.change >= 0 ? '▲' : '▼'} {Math.abs(stock.change)}%
-                    </Text>
-                  </Card.Header>
-                </Card>
-              ))}
-            </XStack>
-          </ScrollView>
+{/* Stock Ticker Row */}
+<ScrollView
+  horizontal
+  showsHorizontalScrollIndicator={false}
+  maxHeight="$12" // Adjust this value to set a maximum height (e.g., $12 = 192px in Tamagui default spacing)
+>
+  <XStack space="$3" paddingBottom="$4">
+    {MOCK_STOCKS.map((stock) => (
+      <Card
+        key={stock.symbol}
+        size="$3"
+        bordered
+        borderColor="$borderColor"
+        backgroundColor="$gray2"
+        width={120}
+        height="$8" // Explicitly set a fixed height for the card (e.g., $8 = 128px)
+        shadowColor={isDark ? '$gray8' : '$gray6'}
+        shadowOffset={{ width: 0, height: 2 }}
+        shadowOpacity={isDark ? 0.2 : 0.3}
+        shadowRadius={isDark ? 3 : 4}
+        elevation={isDark ? 1 : 2}
+      >
+        <Card.Header padded>
+          <Text fontSize="$5" fontWeight="600" color="$color">
+            {stock.symbol}
+          </Text>
+          <Text fontSize="$6" marginTop="$1" color="$color">
+            J${stock.price.toFixed(2)}
+          </Text>
+          <Text
+            fontSize="$3"
+            color={stock.change >= 0 ? '$green9' : '$red9'}
+          >
+            {stock.change >= 0 ? '▲' : '▼'} {Math.abs(stock.change)}%
+          </Text>
+        </Card.Header>
+      </Card>
+    ))}
+  </XStack>
+</ScrollView>
+
 
           {/* Alerts List */}
-          <YStack space="$3">
+          <YStack flex={1} space="$3">
             <XStack alignItems="center" space="$2">
               <Bell size="$2" color="$gray10" />
               <Text fontSize="$6" fontWeight="600" color="$color">
@@ -190,7 +222,9 @@ export default function AlertsScreen() {
 
             {alerts.length === 0 ? (
               <YStack
+                flex={1}
                 alignItems="center"
+                justifyContent="center" // Center vertically when no alerts
                 padding="$4"
                 backgroundColor="$gray3"
                 borderRadius="$4"
@@ -211,7 +245,7 @@ export default function AlertsScreen() {
                   borderColor="$borderColor"
                 >
                   <XStack justifyContent="space-between" alignItems="center">
-                    <YStack>
+                    <YStack flex={1}>
                       <XStack space="$2" alignItems="center">
                         <Text fontSize="$6" fontWeight="600" color="$color">
                           {alert.symbol}
@@ -228,6 +262,9 @@ export default function AlertsScreen() {
                       </Text>
                       <Text fontSize="$2" color="$gray8">
                         {alert.email && 'Email'} {alert.sms && 'SMS'}
+                      </Text>
+                      <Text fontSize="$2" color="$gray10">
+                        Created: {alert.createdAt.toLocaleString()}
                       </Text>
                     </YStack>
                     <Button
@@ -262,10 +299,7 @@ export default function AlertsScreen() {
       <Sheet
         modal
         open={showCreateSheet}
-        onOpenChange={(open) => {
-          console.log('Sheet open state changed to:', open);
-          setShowCreateSheet(open);
-        }}
+        onOpenChange={setShowCreateSheet}
         snapPoints={[85]}
         dismissOnSnapToBottom
         zIndex={100000}

@@ -8,6 +8,9 @@ import {
   Calendar,
   MessageCircle,
   BotMessageSquare,
+  Settings2,
+  Settings,
+  MessagesSquare,
 } from '@tamagui/lucide-icons'
 
 
@@ -32,24 +35,33 @@ export default function TabLayout() {
         headerTintColor: theme.color?.val ?? '#000000',
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Portfolio',
-          tabBarIcon: ({ color }) => <Wallet color={color} size={20} />,
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Button mr="$4" bg="$green8" color="$green12">
-                Update
-              </Button>
-            </Link>
-          ),
-        }}
-      />
+<Tabs.Screen
+    name="index"
+    options={{
+      title: 'Portfolio',
+      tabBarIcon: ({ color }) => <Wallet color={color} size={20} />,
+      headerRight: () => (
+        <Link href="/settings" asChild>
+          <Button
+            mr="$4"
+            // bg="$green8"
+            // color="$green12"
+            circular // Makes it a round button
+            size="$3" // Adjust size as needed
+            icon={<Settings size={20} />}
+          />
+        </Link>
+      ),
+    }}
+  />
+
+
       <Tabs.Screen
         name="news"
         options={{
           title: 'News',
+          headerShown: false,
+
           tabBarIcon: ({ color }) => <Newspaper color={color} size={20} />,
         }}
       />
@@ -59,7 +71,7 @@ export default function TabLayout() {
     title: 'Chat',
     headerShown: false,
     tabBarIcon: ({ focused, size }) => (
-      <BotMessageSquare
+      <MessagesSquare
         size={size * 2}
         color={focused ? theme.blue10?.val : theme.gray7?.val}
         backgroundColor={focused ? theme.purple8?.val : theme.gray5?.val}
@@ -74,11 +86,11 @@ export default function TabLayout() {
         shadowOpacity={0.9}
         shadowRadius={6}
       >
-        <BotMessageSquare
+        <MessagesSquare
           size={size}
           color={focused ? theme.white?.val : theme.gray10?.val}
         />
-      </BotMessageSquare>
+      </MessagesSquare>
     ),    tabBarLabelStyle: {
       fontSize: 12,
       fontWeight: '700',  // Bolder label
@@ -91,6 +103,8 @@ export default function TabLayout() {
         name="alerts"
         options={{
           title: 'Alerts',
+          headerShown: false,
+
           tabBarIcon: ({ color }) => <BellRing color={color} size={20} />,
         }}
       />
@@ -98,6 +112,8 @@ export default function TabLayout() {
         name="calendar"
         options={{
           title: 'Events',
+          headerShown: false,
+
           tabBarIcon: ({ color }) => <Calendar color={color} size={20} />,
         }}
       />

@@ -67,6 +67,13 @@ function RootLayoutNav() {
           <YStack flex={1}>
             <Stack>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen 
+                name="settings" 
+                options={{ 
+                  headerShown: false, // Hide header for settings screen
+                  title: 'Settings' // Optional: Set a title for navigation if needed elsewhere
+                }}
+              />
             </Stack>
           </YStack>
         </KeyboardAvoidingView>

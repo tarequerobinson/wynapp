@@ -1,32 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar } from 'react-native-calendars';
 import { Sheet } from '@tamagui/sheet';
-import {
-  YStack,
-  XStack,
-  Text,
-  Button,
-  ScrollView,
-  Card,
-  View,
-  styled,
-  Theme,
-  useTheme,
-} from 'tamagui';
-import { Bell, BellOff, Moon, Sun, Calendar as CalendarIcon, List, X } from '@tamagui/lucide-icons';
+import { YStack, XStack, Text, Button, ScrollView, Card, styled, Theme, useTheme } from 'tamagui';
+import { Calendar as CalendarIcon, List, RefreshCw } from '@tamagui/lucide-icons';
 import { format, isSameDay, isToday, isBefore, isAfter } from 'date-fns';
 import { useColorScheme } from 'react-native';
-
-interface BusinessEvent {
-  id: string;
-  title: string;
-  link: string;
-  pubDate: string;
-  description: string;
-  eventDate: Date;
-  eventType: string;
-  company: string;
-}
+import { fetchJseEvents, ExtractedEvent } from '@/api/calendar-events';
 
 const EventCard = styled(Card, {
   borderRadius: '$4',
@@ -37,21 +16,8 @@ const EventCard = styled(Card, {
   borderColor: '$borderColor',
   elevate: true,
   variants: {
-    dark: {
-      true: {
-        backgroundColor: '#000000', // Changed from $gray2 to #000000
-        borderColor: '$gray4'
-      },
-    },
+    dark: { backgroundColor: '#000000', borderColor: '$gray4' },
   } as const,
-});
-
-
-const EventTag = styled(View, {
-  borderRadius: '$2',
-  paddingHorizontal: '$2',
-  paddingVertical: '$1',
-  alignSelf: 'flex-start',
 });
 
 export default function BusinessCalendarScreen() {
@@ -60,31 +26,37 @@ export default function BusinessCalendarScreen() {
   const [isDark, setIsDark] = useState(systemColorScheme === 'dark');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showEventSheet, setShowEventSheet] = useState(false);
-  const [alertsEnabled, setAlertsEnabled] = useState(false);
-  const [showAlert, setShowAlert] = useState(false);
   const [isListView, setIsListView] = useState(false);
+  const [events, setEvents] = useState<ExtractedEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setIsDark(systemColorScheme === 'dark');
   }, [systemColorScheme]);
 
-  const colors = {
-    light: {
-      background: '#ffffff',
-      text: '#1a1a1a',
-      textSecondary: '#666666',
-      border: '#e6e6e6',
-      primary: '#0066cc',
-      today: '#0052a3',
-    },
-    dark: {
-      background: '#000000',
-      text: '#ffffff',
-      textSecondary: '#a6a6a6',
-      border: '#333333',
-      primary: '#4d94ff',
-      today: '#80b3ff',
+  const fetchEvents = async () => {
+    try {
+      setLoading(true);
+      const fetchedEvents = await fetchJseEvents();
+      setEvents(fetchedEvents); // All events now have valid eventDate
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch events');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchEvents();
+    const interval = setInterval(fetchEvents, 15 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const colors = {
+    light: { background: '#ffffff', text: '#1a1a1a', textSecondary: '#666666', border: '#e6e6e6', primary: '#0066cc', today: '#0052a3' },
+    dark: { background: '#000000', text: '#ffffff', textSecondary: '#a6a6a6', border: '#333333', primary: '#4d94ff', today: '#80b3ff' },
   };
 
   const currentColors = isDark ? colors.dark : colors.light;
@@ -104,88 +76,18 @@ export default function BusinessCalendarScreen() {
     arrowColor: currentColors.textSecondary,
   };
 
-  const eventColors = {
-    AGM: { bg: isDark ? '#2a3d66' : '#e6f0ff', text: isDark ? '#99b3ff' : '#003366' },
-    'Board Meeting': { bg: isDark ? '#333333' : '#f2f2f2', text: isDark ? '#cccccc' : '#666666' },
-    Earnings: { bg: isDark ? '#2a662a' : '#e6ffe6', text: isDark ? '#99ff99' : '#006600' },
-    'Stock Split': { bg: isDark ? '#4d2a66' : '#f2e6ff', text: isDark ? '#cc99ff' : '#660066' },
-    Default: { bg: isDark ? '#333333' : '#f2f2f2', text: isDark ? '#cccccc' : '#666666' },
-  };
+  const getEventsForDate = (date: Date) => events.filter(event => isSameDay(event.eventDate, date));
 
-  const mockEvents: BusinessEvent[] = [
-    {
-      id: '1',
-      title: 'JSE Annual General Meeting',
-      link: 'https://example.com/jse-agm',
-      pubDate: '2025-02-20',
-      description: 'Annual General Meeting for JSE Corp',
-      eventDate: new Date('2025-02-25'),
-      eventType: 'AGM',
-      company: 'JSE Corp',
-    },
-    {
-      id: '2',
-      title: 'Q1 Earnings Report',
-      link: 'https://example.com/earnings',
-      pubDate: '2025-02-21',
-      description: 'Q1 Earnings Report for ABC Ltd',
-      eventDate: new Date('2025-03-05'),
-      eventType: 'Earnings',
-      company: 'ABC Ltd',
-    },
-    {
-      id: '3',
-      title: 'Board Meeting',
-      link: 'https://example.com/board',
-      pubDate: '2025-02-22',
-      description: 'Quarterly Board Meeting for XYZ Corp',
-      eventDate: new Date('2025-03-15'),
-      eventType: 'Board Meeting',
-      company: 'XYZ Corp',
-    },
-    {
-      id: '4',
-      title: 'Stock Split Announcement',
-      link: 'https://example.com/split',
-      pubDate: '2025-02-23',
-      description: '2:1 Stock Split for Tech Inc',
-      eventDate: new Date('2025-04-01'),
-      eventType: 'Stock Split',
-      company: 'Tech Inc',
-    },
-    {
-      id: '5',
-      title: 'Interim Results',
-      link: 'https://example.com/interim',
-      pubDate: '2025-02-24',
-      description: 'Interim Financial Results for Global Corp',
-      eventDate: new Date('2025-02-21'),
-      eventType: 'Earnings',
-      company: 'Global Corp',
-    },
-  ];
-
-  const getEventTypeColor = (type: string) => eventColors[type as keyof typeof eventColors] || eventColors.Default;
-
-  const toggleAlerts = () => {
-    setAlertsEnabled(!alertsEnabled);
-    setShowAlert(true);
-    setTimeout(() => setShowAlert(false), 2000);
-  };
-
-  const getEventsForDate = (date: Date) => mockEvents.filter(event => isSameDay(event.eventDate, date));
-
-  const markedDates = mockEvents.reduce((acc, event) => ({
-    ...acc,
-    [format(event.eventDate, 'yyyy-MM-dd')]: {
-      marked: true,
-      dotColor: currentColors.primary,
-    }
-  }), {});
+  const markedDates = useMemo(() => {
+    return events.reduce((acc, event) => {
+      const dateStr = format(event.eventDate, 'yyyy-MM-dd');
+      return { ...acc, [dateStr]: { marked: true, dotColor: currentColors.primary } };
+    }, {});
+  }, [events, currentColors.primary]);
 
   const EventSheet = () => {
-    const events = getEventsForDate(selectedDate);
-    
+    const dayEvents = getEventsForDate(selectedDate);
+
     return (
       <Sheet
         modal
@@ -204,32 +106,14 @@ export default function BusinessCalendarScreen() {
             </Text>
             <ScrollView showsVerticalScrollIndicator={false}>
               <YStack space="$3">
-                {events.length > 0 ? (
-                  events.map(event => (
-                    <EventCard key={event.id} dark={isDark}>
+                {dayEvents.length > 0 ? (
+                  dayEvents.map(event => (
+                    <EventCard key={event.title} dark={isDark}>
                       <YStack space="$2">
-                        <EventTag backgroundColor={getEventTypeColor(event.eventType).bg}>
-                          <Text color={getEventTypeColor(event.eventType).text}>
-                            {event.eventType}
-                          </Text>
-                        </EventTag>
-                        <Text fontSize="$5" fontWeight="600" color={currentColors.text}>
-                          {event.company}
+                        <Text fontSize="$4" color={currentColors.text}>{event.title}</Text>
+                        <Text fontSize="$3" color={currentColors.textSecondary}>
+                          {format(event.eventDate, 'MMM d, yyyy')}
                         </Text>
-                        <Text fontSize="$4" color={currentColors.textSecondary}>
-                          {event.title}
-                        </Text>
-                        <Text fontSize="$3" color="$gray10">
-                          {event.description}
-                        </Text>
-                        <Button
-                          size="$3"
-                          backgroundColor="$blue10"
-                          color="$white"
-                          onPress={() => {/* Handle event details */}}
-                        >
-                          View Details
-                        </Button>
                       </YStack>
                     </EventCard>
                   ))
@@ -248,46 +132,24 @@ export default function BusinessCalendarScreen() {
 
   const ListView = () => {
     const today = new Date();
-    const [todayEvents, upcomingEvents, pastEvents] = [
-      mockEvents.filter(event => isToday(event.eventDate)),
-      mockEvents.filter(event => isAfter(event.eventDate, today)),
-      mockEvents.filter(event => isBefore(event.eventDate, today)),
-    ].map(events => events.sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime()));
+    const [todayEvents, upcomingEvents, pastEvents] = useMemo(() => [
+      events.filter(event => isToday(event.eventDate)),
+      events.filter(event => isAfter(event.eventDate, today)),
+      events.filter(event => isBefore(event.eventDate, today)),
+    ].map(events => events.sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime())), [events]);
 
-    const renderSection = (title: string, events: BusinessEvent[]) => (
-      events.length > 0 && (
+    const renderSection = (title: string, sectionEvents: ExtractedEvent[]) => (
+      sectionEvents.length > 0 && (
         <YStack space="$3" marginBottom="$4">
-          <Text fontSize="$6" fontWeight="600" color={currentColors.text}>
-            {title}
-          </Text>
-          {events.map(event => (
-            <EventCard key={event.id} dark={isDark}>
-              <XStack justifyContent="space-between" alignItems="center">
-                <YStack space="$2">
-                  <XStack space="$2" alignItems="center">
-                    <EventTag backgroundColor={getEventTypeColor(event.eventType).bg}>
-                      <Text color={getEventTypeColor(event.eventType).text}>
-                        {event.eventType}
-                      </Text>
-                    </EventTag>
-                    <Text fontSize="$3" color={currentColors.textSecondary}>
-                      {format(event.eventDate, 'MMM d, yyyy')}
-                    </Text>
-                  </XStack>
-                  <Text fontSize="$5" fontWeight="600" color={currentColors.text}>
-                    {event.company}
-                  </Text>
-                  <Text fontSize="$4" color={currentColors.textSecondary}>
-                    {event.title}
-                  </Text>
-                </YStack>
-                <Button
-                  size="$2"
-                  chromeless
-                  icon={<X size="$1" color="$red10" />}
-                  onPress={() => {/* Handle delete */}}
-                />
-              </XStack>
+          <Text fontSize="$6" fontWeight="600" color={currentColors.text}>{title}</Text>
+          {sectionEvents.map(event => (
+            <EventCard key={event.title} dark={isDark}>
+              <YStack space="$2">
+                <Text fontSize="$4" color={currentColors.text}>{event.title}</Text>
+                <Text fontSize="$3" color={currentColors.textSecondary}>
+                  {format(event.eventDate, 'MMM d, yyyy')}
+                </Text>
+              </YStack>
             </EventCard>
           ))}
         </YStack>
@@ -300,10 +162,32 @@ export default function BusinessCalendarScreen() {
           {renderSection('Today', todayEvents)}
           {renderSection('Upcoming Events', upcomingEvents)}
           {renderSection('Past Events', pastEvents)}
+          {(todayEvents.length + upcomingEvents.length + pastEvents.length) === 0 && (
+            <Text color={currentColors.textSecondary} textAlign="center">
+              No events with confirmed dates available
+            </Text>
+          )}
         </YStack>
       </ScrollView>
     );
   };
+
+  if (loading) {
+    return (
+      <YStack flex={1} justifyContent="center" alignItems="center" backgroundColor={currentColors.background}>
+        <Text color={currentColors.text}>Loading events...</Text>
+      </YStack>
+    );
+  }
+
+  if (error) {
+    return (
+      <YStack flex={1} justifyContent="center" alignItems="center" backgroundColor={currentColors.background} space="$4">
+        <Text color="$red10">{error}</Text>
+        <Button size="$4" icon={<RefreshCw />} onPress={fetchEvents}>Retry</Button>
+      </YStack>
+    );
+  }
 
   return (
     <Theme name={isDark ? 'dark' : 'light'}>
@@ -315,47 +199,12 @@ export default function BusinessCalendarScreen() {
           borderBottomWidth={1}
           borderBottomColor={currentColors.border}
         >
-          <Text fontSize="$8" fontWeight="600" color={currentColors.text}>
-            Calendar
-          </Text>
+          <Text fontSize="$8" fontWeight="600" color={currentColors.text}>Calendar</Text>
           <XStack space="$2">
-            <Button
-              size="$3"
-              chromeless
-              icon={isListView ? CalendarIcon : List}
-              onPress={() => setIsListView(!isListView)}
-            />
-            {/* <Button
-              size="$3"
-              chromeless
-              icon={isDark ? Moon : Sun}
-              onPress={() => setIsDark(!isDark)}
-            /> */}
-            <Button
-              size="$3"
-              chromeless
-              icon={alertsEnabled ? Bell : BellOff}
-              onPress={toggleAlerts}
-            />
+            <Button size="$3" chromeless icon={isListView ? CalendarIcon : List} onPress={() => setIsListView(!isListView)} />
+            <Button size="$3" chromeless icon={<RefreshCw />} onPress={fetchEvents} />
           </XStack>
         </XStack>
-
-        {showAlert && (
-          <Card
-            padding="$3"
-            margin="$4"
-            marginBottom="$2"
-            backgroundColor={alertsEnabled ? '$blue10' : '$gray3'}
-            elevate
-            animation="quick"
-            enterStyle={{ opacity: 0, y: -10 }}
-            exitStyle={{ opacity: 0, y: -10 }}
-          >
-            <Text color="$white">
-              {alertsEnabled ? 'Alerts Enabled' : 'Alerts Disabled'}
-            </Text>
-          </Card>
-        )}
 
         {isListView ? (
           <ListView />

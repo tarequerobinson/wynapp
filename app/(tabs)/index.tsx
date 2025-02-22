@@ -1,41 +1,39 @@
 import { useState } from 'react';
-import { Home, CurrencyDollar, Scale, ChartBar, Trophy, Globe } from '@tamagui/lucide-icons';
-import { Card, Paragraph, XStack, YStack, AnimatePresence, useTheme, Text, ScrollView, Button } from 'tamagui';
+import { Home, CurrencyDollar, Scale, ChartBar, PieChart } from '@tamagui/lucide-icons';
+import { Card, XStack, YStack, AnimatePresence, useTheme, Text, ScrollView, Button } from 'tamagui';
 import { Dimensions } from 'react-native';
 import { Link } from 'expo-router';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_SPACING = '$2';
-const CONTAINER_PADDING = '$3';
+const CONTAINER_PADDING = '$4';
 
 const AssetCard = ({ title, value, change, icon: Icon, color }) => {
   const theme = useTheme();
   return (
     <Card
-      p="$3"
-      borderRadius="$4"
-      bg={theme.name === 'dark' ? '$gray2' : '$white'}
-      borderWidth={1}
-      borderColor={theme.name === 'dark' ? '$gray4' : '$gray3'}
-      shadowColor={theme.name === 'dark' ? '$gray6' : '$gray4'}
-      shadowOffset={{ width: 0, height: 1 }}
-      shadowOpacity={0.1}
-      shadowRadius={2}
+      p="$4"
+      borderRadius="$5"
+      bg={theme.name === 'dark' ? '$gray2' : '$gray1'}
       animation="quick"
-      pressStyle={{ scale: 0.98 }}
-      hoverStyle={{ bg: theme.name === 'dark' ? '$gray3' : '$gray1' }}
+      pressStyle={{ opacity: 0.9 }}
       width="100%"
     >
-      <XStack ai="center" gap="$3">
-        {Icon && <Icon size="$1" color={color} />}
-        <YStack flex={1} gap="$1">
-          <Text fontSize="$3" color={theme.name === 'dark' ? '$gray10' : '$gray11'} fontWeight="600">
+      <XStack ai="center" gap="$4">
+        {Icon && <Icon size="$3" color={color} />}
+        <YStack flex={1}>
+          <Text fontSize="$5" color={theme.name === 'dark' ? '$gray11' : '$gray10'} fontWeight="600">
             {title || 'Untitled'}
           </Text>
-          <Text fontSize="$5" fontWeight="700" color={theme.name === 'dark' ? '$white' : '$gray12'} numberOfLines={1}>
+          <Text 
+            fontSize="$7" 
+            fontWeight="700" 
+            color={theme.name === 'dark' ? '$white' : '$gray12'}
+            adjustsFontSizeToFit
+            numberOfLines={1}
+          >
             {value || 'N/A'}
           </Text>
-          <Text fontSize="$2" color={change?.startsWith('+') ? '$green9' : '$red9'}>
+          <Text fontSize="$4" color={change?.startsWith('+') ? '$green10' : '$red10'}>
             {change || '0%'}
           </Text>
         </YStack>
@@ -44,87 +42,90 @@ const AssetCard = ({ title, value, change, icon: Icon, color }) => {
   );
 };
 
-const NetWorthCard = ({ netWorth, standing }) => (
-  <Card
-    p="$4"
-    bg={useTheme().name === 'dark' ? '$gray2' : '$white'}
-    borderRadius="$5"
-    borderWidth={1}
-    borderColor={useTheme().name === 'dark' ? '$gray4' : '$gray3'}
-    shadowColor={useTheme().name === 'dark' ? '$gray6' : '$gray4'}
-    shadowOffset={{ width: 0, height: 1 }}
-    shadowOpacity={0.1}
-    shadowRadius={2}
-    animation="quick"
-    pressStyle={{ scale: 0.98 }}
-  >
-    <YStack gap="$3">
-      <YStack>
-        <Text fontSize="$3" color={useTheme().name === 'dark' ? '$gray10' : '$gray11'} fontWeight="600">
+const NetWorthCard = ({ netWorth, standing }) => {
+  const theme = useTheme();
+  return (
+    <Card
+      p="$5"
+      bg={theme.name === 'dark' ? '$gray2' : '$gray1'}
+      borderRadius="$6"
+      animation="quick"
+      pressStyle={{ opacity: 0.9 }}
+    >
+      <YStack gap="$4" ai="center">
+        <Text fontSize="$5" color={theme.name === 'dark' ? '$gray11' : '$gray10'} fontWeight="600">
           Net Worth
         </Text>
-        <Text fontSize="$8" fontWeight="800" color={useTheme().name === 'dark' ? '$white' : '$gray12'}>
-          ${netWorth?.toLocaleString()}
+        <Text 
+          fontSize="$10" 
+          fontWeight="800" 
+          color={theme.name === 'dark' ? '$white' : '$gray12'}
+          adjustsFontSizeToFit
+          numberOfLines={1}
+        >
+          ${netWorth?.toLocaleString() || '0'}
         </Text>
+        <XStack jc="space-around" width="100%" mt="$2">
+          <YStack ai="center" gap="$1">
+            <Text fontSize="$4" color="$blue10" fontWeight="600">
+              Top {100 - (standing?.jamaicaPercentile || 0)}%
+            </Text>
+            <Text fontSize="$3" color={theme.name === 'dark' ? '$gray9' : '$gray10'}>
+              Jamaica
+            </Text>
+          </YStack>
+          <YStack ai="center" gap="$1">
+            <Text fontSize="$4" color="$blue10" fontWeight="600">
+              Top {100 - (standing?.worldPercentile || 0)}%
+            </Text>
+            <Text fontSize="$3" color={theme.name === 'dark' ? '$gray9' : '$gray10'}>
+              Global
+            </Text>
+          </YStack>
+        </XStack>
       </YStack>
-      <XStack gap="$3" flexWrap="wrap">
-        <YStack flex={1} minWidth={120}>
-          <Text fontSize="$2" color={useTheme().name === 'dark' ? '$gray9' : '$gray10'}>
-            Jamaica
-          </Text>
-          <Text fontSize="$4" fontWeight="600" color={useTheme().name === 'dark' ? '$white' : '$gray12'}>
-            #{standing?.jamaicaRank?.toLocaleString()}
-          </Text>
-          <Text fontSize="$2" color="$blue9">
-            Top {100 - standing?.jamaicaPercentile}%
-          </Text>
-        </YStack>
-        <YStack flex={1} minWidth={120}>
-          <Text fontSize="$2" color={useTheme().name === 'dark' ? '$gray9' : '$gray10'}>
-            Global
-          </Text>
-          <Text fontSize="$4" fontWeight="600" color={useTheme().name === 'dark' ? '$white' : '$gray12'}>
-            #{standing?.worldRank?.toLocaleString()}
-          </Text>
-          <Text fontSize="$2" color="$blue9">
-            Top {100 - standing?.worldPercentile}%
-          </Text>
-        </YStack>
-      </XStack>
-    </YStack>
-  </Card>
-);
+    </Card>
+  );
+};
 
-const NavigationTabs = ({ tabs, currentIndex, onSelect }) => (
-  <ScrollView
-    horizontal
-    showsHorizontalScrollIndicator={false}
-    contentContainerStyle={{ paddingHorizontal: CONTAINER_PADDING }}
-  >
-    <XStack gap="$2" py="$2">
-      {tabs.map((tab, index) => (
+const SegmentedControl = ({ options, selectedIndex, onSelect }) => {
+  const theme = useTheme();
+  return (
+    <XStack 
+      bg={theme.name === 'dark' ? '$gray3' : '$gray2'} 
+      borderRadius="$10" 
+      p="$1" 
+      jc="center"
+      width="100%"
+      maxWidth={400}
+      alignSelf="center"
+    >
+      {options.map((option, index) => (
         <Button
           key={index}
+          unstyled
+          flex={1}
+          bg={selectedIndex === index ? '$blue10' : 'transparent'}
+          borderRadius="$8"
+          p="$3"
           onPress={() => onSelect(index)}
-          bg={currentIndex === index ? '$blue9' : useTheme().name === 'dark' ? '$gray3' : '$gray2'}
-          color={currentIndex === index ? '$white' : useTheme().name === 'dark' ? '$gray10' : '$gray11'}
-          size="$3"
-          borderRadius="$6"
-          px="$4"
           animation="quick"
-          hoverStyle={{ bg: currentIndex === index ? '$blue10' : useTheme().name === 'dark' ? '$gray4' : '$gray3' }}
-          pressStyle={{ scale: 0.95 }}
-          borderWidth={1}
-          borderColor={useTheme().name === 'dark' ? '$gray5' : '$gray3'}
+          pressStyle={{ opacity: 0.8 }}
+          hoverStyle={{ bg: selectedIndex === index ? '$blue11' : '$gray4' }}
         >
-          <Text fontSize="$4" fontWeight={currentIndex === index ? '600' : '500'}>
-            {tab}
+          <Text
+            fontSize="$4"
+            fontWeight={selectedIndex === index ? '600' : '500'}
+            color={selectedIndex === index ? '$white' : theme.name === 'dark' ? '$gray10' : '$gray9'}
+            textAlign="center"
+          >
+            {option}
           </Text>
         </Button>
       ))}
     </XStack>
-  </ScrollView>
-);
+  );
+};
 
 export default function DashboardScreen() {
   const theme = useTheme();
@@ -146,88 +147,69 @@ export default function DashboardScreen() {
 
   const pages = [
     {
-      title: 'Overview',
+      title: 'Summary',
       content: (
-        <YStack gap="$4">
+        <YStack gap="$5">
           <NetWorthCard netWorth={netWorth} standing={financialStanding} />
-          <YStack gap="$3">
-            <XStack gap={CARD_SPACING} flexWrap="wrap">
-              <YStack flex={1} minWidth={SCREEN_WIDTH > 600 ? '48%' : '100%'}>
-                <AssetCard
-                  title="Total Assets"
-                  value={`$${clientPortfolio?.totalAssets?.toLocaleString()}`}
-                  change="+2.4%"
-                  icon={CurrencyDollar}
-                  color="$green10"
-                />
-              </YStack>
-              <YStack flex={1} minWidth={SCREEN_WIDTH > 600 ? '48%' : '100%'}>
-                <AssetCard
-                  title="Liabilities"
-                  value={`-$${Math.abs(clientPortfolio?.liabilities).toLocaleString()}`}
-                  change="-0.8%"
-                  icon={Scale}
-                  color="$red10"
-                />
-              </YStack>
-            </XStack>
+          <YStack gap="$4">
+            <AssetCard
+              title="Total Assets"
+              value={`$${clientPortfolio?.totalAssets?.toLocaleString()}`}
+              change="+2.4%"
+              icon={CurrencyDollar}
+              color="$green11"
+            />
+            <AssetCard
+              title="Liabilities"
+              value={`-$${Math.abs(clientPortfolio?.liabilities).toLocaleString()}`}
+              change="-0.8%"
+              icon={Scale}
+              color="$red11"
+            />
           </YStack>
         </YStack>
       ),
     },
     {
-      title: 'Distribution',
+      title: 'Assets',
       content: (
-        <YStack gap="$4">
+        <YStack gap="$5">
+          <AssetCard
+            title="Real Estate"
+            value="$123"
+            change="+2.5%"
+            icon={Home}
+            color="$blue11"
+          />
           <Card
-            p="$4"
-            bg={theme.name === 'dark' ? '$gray2' : '$white'}
-            borderRadius="$4"
-            borderWidth={1}
-            borderColor={theme.name === 'dark' ? '$gray4' : '$gray3'}
-            shadowColor={theme.name === 'dark' ? '$gray6' : '$gray4'}
-            shadowOffset={{ width: 0, height: 1 }}
-            shadowOpacity={0.1}
-            shadowRadius={2}
+            p="$5"
+            bg={theme.name === 'dark' ? '$gray2' : '$gray1'}
+            borderRadius="$5"
           >
-            <Text fontSize="$4" color={theme.name === 'dark' ? '$white' : '$gray12'}>
-              Asset Distribution Chart (Coming Soon)
+            <Text fontSize="$5" fontWeight="600" color={theme.name === 'dark' ? '$gray11' : '$gray10'}>
+              More Assets
+            </Text>
+            <Text fontSize="$4" color="$gray9" mt="$2">
+              Coming Soon
             </Text>
           </Card>
         </YStack>
       ),
     },
     {
-      title: 'Details',
+      title: 'Insights',
       content: (
-        <YStack gap="$4">
-          <AssetCard
-            title="Real Estate"
-            value="$123"
-            change="+2.5%"
-            icon={Home}
-            color="$blue10"
-          />
-        </YStack>
-      ),
-    },
-    {
-      title: 'Analysis',
-      content: (
-        <YStack gap="$4">
+        <YStack gap="$5">
           <Card
-            p="$4"
-            bg={theme.name === 'dark' ? '$gray2' : '$white'}
-            borderRadius="$4"
-            borderWidth={1}
-            borderColor={theme.name === 'dark' ? '$gray4' : '$gray3'}
-            shadowColor={theme.name === 'dark' ? '$gray6' : '$gray4'}
-            shadowOffset={{ width: 0, height: 1 }}
-            shadowOpacity={0.1}
-            shadowRadius={2}
+            p="$5"
+            bg={theme.name === 'dark' ? '$gray2' : '$gray1'}
+            borderRadius="$5"
           >
-            <Text fontSize="$4" color={theme.name === 'dark' ? '$white' : '$gray12'}>
-              Advanced Analysis (Coming Soon)
+            <Text fontSize="$5" fontWeight="600" color={theme.name === 'dark' ? '$gray11' : '$gray10'}>
+              Insights
+            </Text>
+            <Text fontSize="$4" color="$gray9" mt="$2">
+              Coming Soon
             </Text>
           </Card>
         </YStack>
@@ -236,43 +218,38 @@ export default function DashboardScreen() {
   ];
 
   return (
-    <YStack f={1} bg={theme.name === 'dark' ? '$gray1' : '$gray1Light'}>
-      <Card
-        bg={theme.name === 'dark' ? '$gray2' : '$white'}
-        borderBottomWidth={1}
-        borderColor={theme.name === 'dark' ? '$gray4' : '$gray3'}
-        shadowColor={theme.name === 'dark' ? '$gray6' : '$gray4'}
-        shadowOffset={{ width: 0, height: 1 }}
-        shadowOpacity={0.1}
-        shadowRadius={2}
-        zIndex={10}
-      >
-        <NavigationTabs
-          tabs={pages.map((p) => p.title)}
-          currentIndex={currentPage}
+    <YStack f={1} bg={theme.name === 'dark' ? '$gray1' : '$background'}>
+      <YStack gap="$5" p={CONTAINER_PADDING} f={1}>
+        <SegmentedControl
+          options={pages.map(p => p.title)}
+          selectedIndex={currentPage}
           onSelect={setCurrentPage}
         />
-      </Card>
-
-      <ScrollView
-        f={1}
-        contentContainerStyle={{ p: CONTAINER_PADDING }}
-        showsVerticalScrollIndicator={false}
-      >
-        <AnimatePresence mode="wait">
-          <YStack
-            key={currentPage}
-            animation="bouncy"
-            enterStyle={{ x: SCREEN_WIDTH / 4, opacity: 0 }}
-            exitStyle={{ x: -SCREEN_WIDTH / 4, opacity: 0 }}
-            x={0}
-            opacity={1}
-            gap="$4"
-          >
-            {pages[currentPage]?.content}
-          </YStack>
-        </AnimatePresence>
-      </ScrollView>
+        <ScrollView
+          f={1}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ pb: '$6' }}
+        >
+          <AnimatePresence>
+            {/* Pre-render all pages, only animate visibility */}
+            {pages.map((page, index) => (
+              <YStack
+                key={index}
+                animation="lazy"
+                enterStyle={{ opacity: 0 }}
+                exitStyle={{ opacity: 0 }}
+                opacity={currentPage === index ? 1 : 0}
+                pointerEvents={currentPage === index ? 'auto' : 'none'}
+                position={currentPage === index ? 'relative' : 'absolute'}
+                width="100%"
+                gap="$5"
+              >
+                {page.content}
+              </YStack>
+            ))}
+          </AnimatePresence>
+        </ScrollView>
+      </YStack>
     </YStack>
   );
 }
