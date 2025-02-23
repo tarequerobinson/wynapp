@@ -212,12 +212,101 @@ export default function BusinessCalendarScreen() {
 
   if (loading) {
     return (
-      <YStack flex={1} justifyContent="center" alignItems="center" backgroundColor={currentColors.background}>
-        <Text color={currentColors.text}>Loading events...</Text>
-      </YStack>
+      <Theme name={isDark ? 'dark' : 'light'}>
+        <YStack 
+          flex={1} 
+          justifyContent="center" 
+          alignItems="center" 
+          backgroundColor={currentColors.background}
+          space="$4"
+        >
+          {/* Animated Spinner */}
+          <YStack
+            animation="bouncy"
+            scale={1}
+            enterStyle={{ scale: 0 }}
+            width={60}
+            height={60}
+            borderRadius={30}
+            backgroundColor={currentColors.primary}
+            justifyContent="center"
+            alignItems="center"
+          >
+            <CalendarIcon 
+              size="$2" 
+              color={currentColors.background}
+              animation="pulse"
+              animateOnly={['rotate']}
+              rotate="360deg"
+              animationDuration={2000}
+            />
+          </YStack>
+  
+          {/* Loading Text */}
+          <YStack space="$2" alignItems="center">
+            <Text 
+              fontSize="$6"
+              fontWeight="600"
+              color={currentColors.text}
+              animation="quick"
+              opacity={1}
+              enterStyle={{ opacity: 0 }}
+            >
+              Loading Events
+            </Text>
+            <Text 
+              fontSize="$3"
+              color={currentColors.textSecondary}
+              textAlign="center"
+              maxWidth={240}
+            >
+              Fetching the latest calendar updates...
+            </Text>
+          </YStack>
+  
+          {/* Progress Dots */}
+          <XStack space="$2">
+            {[1, 2, 3].map((i) => (
+              <YStack
+                key={i}
+                width={8}
+                height={8}
+                borderRadius={4}
+                backgroundColor={currentColors.primary}
+                animation="lazy"
+                opacity={0.3}
+                animateOnly={['opacity']}
+                animation={{
+                  type: 'timing',
+                  loop: true,
+                  duration: 800,
+                  delay: i * 200,
+                }}
+                enterStyle={{ opacity: 0.3 }}
+                exitStyle={{ opacity: 0.3 }}
+                opacity={1}
+              />
+            ))}
+          </XStack>
+  
+          {/* Refresh Button */}
+          <Button
+            size="$3"
+            variant="outlined"
+            borderColor={currentColors.primary}
+            color={currentColors.primary}
+            icon={<RefreshCw size="$1" />}
+            onPress={fetchEvents}
+            marginTop="$4"
+          >
+            Refresh Now
+          </Button>
+        </YStack>
+      </Theme>
     );
   }
 
+  
   if (error) {
     return (
       <YStack flex={1} justifyContent="center" alignItems="center" backgroundColor={currentColors.background} space="$4">

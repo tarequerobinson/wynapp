@@ -1,5 +1,5 @@
 import { useRouter, useFocusEffect } from 'expo-router';
-import { ChatbotUI } from '@/components/chat/Chatbot'; // Adjust the import path to where your ChatbotUI is located
+import { ChatbotUI } from '@/components/chat/ChatbotUI'; // Adjust the import path to where your ChatbotUI is located
 import { YStack, Button } from 'tamagui';
 import { BotMessageSquare } from '@tamagui/lucide-icons';
 

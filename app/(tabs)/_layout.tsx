@@ -7,7 +7,8 @@ import {
   Search,
   Plus,
   MoreVertical,
-  Filter
+  Filter,
+  ArrowLeft
 } from '@tamagui/lucide-icons';
 import { useState } from 'react';
 import { Animated, Dimensions } from 'react-native';
@@ -169,20 +170,24 @@ export default function TabLayout() {
               ),
               headerLeft: () => (
                 <Button
-                  ml="$4"
+                  ml="$1"
                   size="$3"
-                  icon={<ArrowLeftFromLine size={20} />}
+                  icon={<ArrowLeft size={20} />}
                   onPress={() => router.back()}
+                  backgroundColor="transparent"  // Add this line
+
                 >
-                  <Text>Back</Text>
+                  {/* <Text>Back</Text> */}
                 </Button>
               ),
               headerRight: () => (
                 <Button
-                  mr="$4"
+                  mr="$1"
                   size="$3"
                   icon={<Menu size={20} />}
                   onPress={() => setSidebarOpen(true)}
+                  backgroundColor="transparent"  // Add this line
+
                 />
               ),
               tabBarIcon: ({ focused }) => (
