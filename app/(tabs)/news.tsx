@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { RefreshControl, Animated, Pressable } from 'react-native';
-import { Accordion, Square, useThemeName, Button, XStack, YStack, Text, Input, ScrollView, Spinner, H4, Paragraph, styled, useTheme } from 'tamagui';
+import { RefreshControl, Animated, ScrollView as RNScrollView } from 'react-native';
+import { Accordion, Square, Button, XStack, YStack, Text, Input, ScrollView, Spinner, H4, Paragraph, styled, useTheme } from 'tamagui';
 import {
-  Search, Newspaper, Clock, User, ArrowLeft, BarChart, Volume2, VolumeX, Share2, Bookmark, BookmarkCheck, Filter, Calendar, ChevronLeft, ChevronRight, ChevronDown, RefreshCw
+  Search, Newspaper, Clock, User, BarChart, Volume2, VolumeX, Share2, Bookmark, BookmarkCheck, Filter, ChevronDown, RefreshCw
 } from '@tamagui/lucide-icons';
 import { format } from 'date-fns';
 import { newsApi, NewsItem } from '@/api/newsApi';
@@ -11,119 +11,9 @@ import * as Speech from 'expo-speech';
 import { Share } from 'react-native';
 import { useColorScheme } from 'react-native';
 import { ArticleDetail } from '../components/ArticleDetail';
+import { NewsCard } from '@/components/NewsCard';
 
-// NewsCard Component
-interface NewsCardProps {
-  item: NewsItem;
-  onPress: (item: NewsItem) => void;
-  bookmarkedArticles: Set<string>;
-  toggleBookmark: (articleId: string) => void;
-  shareArticle: (article: NewsItem) => void;
-}
-
-export function NewsCard({ item, onPress, bookmarkedArticles, toggleBookmark, shareArticle }: NewsCardProps) {
-  const theme = useTheme();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.95)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
-      Animated.spring(scaleAnim, { toValue: 1, friction: 8, tension: 40, useNativeDriver: true })
-    ]).start();
-  }, []);
-
-  const handleCardPress = useCallback(() => onPress(item), [item, onPress]);
-  const handleBookmark = useCallback((e) => { e.stopPropagation(); toggleBookmark(item.title); }, [item.title, toggleBookmark]);
-  const handleShare = useCallback((e) => { e.stopPropagation(); shareArticle(item); }, [item, shareArticle]);
-
-  const sourceColor = item.source === 'Gleaner' ? '$blue10' : '$red10';
-  const sourceBackgroundColor = item.source === 'Gleaner' ? '$blue3' : '$red3';
-
-  return (
-    <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
-      <YStack
-        backgroundColor="$backgroundStrong"
-        borderRadius="$4"
-        borderWidth={1}
-        borderColor="$borderColor"
-        marginVertical="$2"
-        overflow="hidden"
-        animation="quick"
-        enterStyle={{ opacity: 0, y: 10 }}
-        pressStyle={{ scale: 0.98 }}
-        onPress={handleCardPress}
-      >
-        <XStack minHeight={140} flex={1}>
-          <YStack 
-            width={120} 
-            backgroundColor={item.imageUrl ? undefined : '$gray3'}
-            justifyContent="center"
-            alignItems="center"
-            animation="lazy"
-            enterStyle={{ scale: 0.9, opacity: 0 }}
-          >
-            {item.imageUrl ? (
-              <Animated.Image
-                source={{ uri: item.imageUrl }}
-                style={{ width: '100%', height: '100%' }}
-                resizeMode="cover"
-              />
-            ) : (
-              <Text color="$gray8" fontSize="$4" fontWeight="600" textAlign="center" padding="$2">
-                No Image
-              </Text>
-            )}
-          </YStack>
-          <YStack flex={1} padding="$3" space="$2" animation="lazy" enterStyle={{ x: 10, opacity: 0 }}>
-            <XStack justifyContent="space-between" alignItems="center">
-              <YStack backgroundColor={sourceBackgroundColor} paddingHorizontal="$2" paddingVertical="$1" borderRadius="$2">
-                <Text color={sourceColor} fontSize="$2" fontWeight="600">{item.source}</Text>
-              </YStack>
-              <XStack alignItems="center" space="$1">
-                <Clock size="$1" color="$gray9" />
-                <Text fontSize="$2" color="$gray9">{format(new Date(item.pubDate), 'MMM d, yyyy')}</Text>
-              </XStack>
-            </XStack>
-            <Text fontSize="$5" fontWeight="700" color="$color" lineHeight="$4" numberOfLines={2} flex={1}>
-              {item.title}
-            </Text>
-            {item.description && (
-              <Text fontSize="$3" color="$gray10" lineHeight="$3" numberOfLines={3} flex={1}>
-                {item.description}
-              </Text>
-            )}
-            <XStack alignItems="center" justifyContent="space-between" marginTop="$1">
-              {item.creator && (
-                <XStack alignItems="center" space="$1" flex={1}>
-                  <User size="$1" color="$gray9" />
-                  <Text fontSize="$2" color="$gray9" numberOfLines={1}>{item.creator}</Text>
-                </XStack>
-              )}
-              <XStack space="$2">
-                <Button
-                  icon={bookmarkedArticles.has(item.title) ? <BookmarkCheck size="$1" color="$blue10" /> : <Bookmark size="$1" color="$gray9" />}
-                  size="$2" circular backgroundColor="transparent" borderWidth={1} borderColor="$gray5"
-                  onPress={handleBookmark} hoverStyle={{ backgroundColor: '$gray3' }} pressStyle={{ scale: 0.95 }}
-                  animateOnly={['transform', 'backgroundColor']} animation="quick"
-                  accessibilityLabel={bookmarkedArticles.has(item.title) ? "Remove bookmark" : "Add bookmark"}
-                />
-                <Button
-                  icon={<Share2 size="$1" color="$gray9" />} size="$2" circular backgroundColor="transparent"
-                  borderWidth={1} borderColor="$gray5" onPress={handleShare} hoverStyle={{ backgroundColor: '$gray3' }}
-                  pressStyle={{ scale: 0.95 }} animateOnly={['transform', 'backgroundColor']} animation="quick"
-                  accessibilityLabel="Share article"
-                />
-              </XStack>
-            </XStack>
-          </YStack>
-        </XStack>
-      </YStack>
-    </Animated.View>
-  );
-}
-
-// NewsAggregator Component
+// Styled Components and Constants
 const ITEMS_PER_PAGE = 10;
 const AnimatedYStack = Animated.createAnimatedComponent(YStack);
 const StyledScrollView = styled(ScrollView, { name: 'StyledScrollView', backgroundColor: '$backgroundStrong' });
@@ -150,7 +40,8 @@ export default function NewsAggregator() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [visibleItems, setVisibleItems] = useState(ITEMS_PER_PAGE); // Number of items to display
+  const [isLoadingMore, setIsLoadingMore] = useState(false); // Loading more items
   const [bookmarkedArticles, setBookmarkedArticles] = useState<Set<string>>(new Set());
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -160,10 +51,11 @@ export default function NewsAggregator() {
 
   const [fadeAnim] = useState(new Animated.Value(0));
   const filterFadeAnim = useRef(new Animated.Value(1)).current;
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<RNScrollView>(null);
   const systemColorScheme = useColorScheme();
   const isDark = systemColorScheme === 'dark';
 
+  // Fetch initial news
   const fetchNews = useCallback(async () => {
     try {
       setLoading(true);
@@ -171,6 +63,7 @@ export default function NewsAggregator() {
       Animated.timing(fadeAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start();
       const fetchedNews = await newsApi.fetchNews();
       setNews(fetchedNews);
+      setVisibleItems(ITEMS_PER_PAGE); // Reset visible items on refresh
       Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch news');
@@ -181,6 +74,7 @@ export default function NewsAggregator() {
     }
   }, [fadeAnim]);
 
+  // Fetch summary
   const fetchSummary = useCallback(async () => {
     setSummaryLoading(true);
     setSummaryError(null);
@@ -204,6 +98,7 @@ export default function NewsAggregator() {
   useEffect(() => { fetchNews(); }, [fetchNews]);
   useEffect(() => { fetchSummary(); }, [fetchSummary, filteredAndSortedNews]);
 
+  // Refresh handler
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -211,6 +106,7 @@ export default function NewsAggregator() {
     fetchSummary();
   }, [fetchNews, fetchSummary]);
 
+  // Bookmark handler
   const toggleBookmark = useCallback((articleId: string) => {
     setBookmarkedArticles((prev) => {
       const newBookmarks = new Set(prev);
@@ -225,6 +121,7 @@ export default function NewsAggregator() {
     });
   }, []);
 
+  // Share handler
   const shareArticle = useCallback(async (article: NewsItem) => {
     try {
       await Share.share({
@@ -237,6 +134,7 @@ export default function NewsAggregator() {
     }
   }, []);
 
+  // Text-to-speech handler
   const handleTextToSpeech = useCallback(() => {
     if (isPlaying) {
       Speech.stop();
@@ -255,6 +153,7 @@ export default function NewsAggregator() {
     }
   }, [isPlaying, summary]);
 
+  // Filter handler
   const handleFilter = useCallback(
     debounce((newSortOrder) => {
       setIsFiltering(true);
@@ -264,12 +163,14 @@ export default function NewsAggregator() {
         useNativeDriver: true,
       }).start(() => {
         setSortOrder(newSortOrder);
+        setVisibleItems(ITEMS_PER_PAGE); // Reset visible items on filter change
         Animated.timing(filterFadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start(() => setIsFiltering(false));
       });
     }, 200),
     [filterFadeAnim]
   );
 
+  // Filter and sort news
   const filteredAndSortedNews = useMemo(() => {
     let processed = news.filter((item) => {
       const matchesSearch =
@@ -285,15 +186,27 @@ export default function NewsAggregator() {
     );
   }, [news, searchQuery, selectedSource, sortOrder]);
 
-  const paginatedNews = useMemo(() =>
-    filteredAndSortedNews.slice(
-      (currentPage - 1) * ITEMS_PER_PAGE,
-      currentPage * ITEMS_PER_PAGE
-    ),
-    [filteredAndSortedNews, currentPage]
+  // Slice visible news items
+  const visibleNews = useMemo(() =>
+    filteredAndSortedNews.slice(0, visibleItems),
+    [filteredAndSortedNews, visibleItems]
   );
-  const totalPages = Math.ceil(filteredAndSortedNews.length / ITEMS_PER_PAGE);
 
+  // Handle scroll to load more
+  const handleScroll = useCallback(({ nativeEvent }) => {
+    const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 100; // Trigger 100px before bottom
+
+    if (isCloseToBottom && !isLoadingMore && visibleItems < filteredAndSortedNews.length) {
+      setIsLoadingMore(true);
+      setTimeout(() => { // Simulate a slight delay for smoother UX
+        setVisibleItems((prev) => Math.min(prev + ITEMS_PER_PAGE, filteredAndSortedNews.length));
+        setIsLoadingMore(false);
+      }, 500);
+    }
+  }, [isLoadingMore, visibleItems, filteredAndSortedNews.length]);
+
+  // Render TopBar
   const renderTopBar = () => (
     <TopBar>
       <XStack space="$3" ai="center" flex={1}>
@@ -322,6 +235,7 @@ export default function NewsAggregator() {
     </TopBar>
   );
 
+  // Render News Summary
   const renderNewsSummary = () => (
     <YStack p="$4" space="$3">
       <StyledAccordion type="multiple" defaultValue={['summary']}>
@@ -388,6 +302,7 @@ export default function NewsAggregator() {
     </YStack>
   );
 
+  // Loading State
   if (loading) {
     return (
       <YStack flex={1} justifyContent="center" alignItems="center" backgroundColor={isDark ? '$gray1Dark' : '$gray1Light'} space="$4">
@@ -417,6 +332,7 @@ export default function NewsAggregator() {
     );
   }
 
+  // Error State
   if (error) {
     return (
       <YStack flex={1} justifyContent="center" alignItems="center" backgroundColor={isDark ? '$gray1Dark' : '$gray1Light'} space="$4">
@@ -426,6 +342,7 @@ export default function NewsAggregator() {
     );
   }
 
+  // Main Render with Infinite Scroll
   return (
     <NewsContainer>
       {selectedArticle ? (
@@ -434,37 +351,43 @@ export default function NewsAggregator() {
       ) : (
         <>
           {renderTopBar()}
-          <StyledScrollView ref={scrollViewRef} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-            scrollEventThrottle={16}>
+          <StyledScrollView
+            ref={scrollViewRef}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            scrollEventThrottle={16}
+            onScroll={handleScroll}
+            showsVerticalScrollIndicator={false} // Optional: hide scrollbar for cleaner UX
+          >
             <YStack space="$4">
               {renderNewsSummary()}
               <YStack px="$4" space="$4">
-                {error ? (
-                  <Card p="$4" bg="$red3Dark"><Text color="$red10">{error}</Text></Card>
-                ) : (
-                  <>
-                    <AnimatedYStack style={{ opacity: filterFadeAnim, transform: [{ translateY: filterFadeAnim.interpolate({ inputRange: [0.5, 1], outputRange: [5, 0] }) }] }} space="$4">
-                      {isFiltering && (
-                        <XStack justifyContent="center" padding="$2">
-                          <Spinner size="small" color="$blue10" />
-                        </XStack>
-                      )}
-                      {paginatedNews.map((item, index) => (
-                        <NewsCard key={`${item.source}-${item.title}-${index}`} item={item} onPress={setSelectedArticle}
-                          bookmarkedArticles={bookmarkedArticles} toggleBookmark={toggleBookmark} shareArticle={shareArticle} />
-                      ))}
-                    </AnimatedYStack>
-                    {totalPages > 1 && (
-                      <XStack ai="center" jc="center" space="$3" py="$4">
-                        <Button icon={<ChevronLeft size="$1" />} disabled={currentPage === 1 || isFiltering}
-                          onPress={() => setCurrentPage((prev) => prev - 1)} />
-                        <Text>{currentPage} / {totalPages}</Text>
-                        <Button icon={<ChevronRight size="$1" />} disabled={currentPage === totalPages || isFiltering}
-                          onPress={() => setCurrentPage((prev) => prev + 1)} />
-                      </XStack>
-                    )}
-                  </>
-                )}
+                <AnimatedYStack style={{ opacity: filterFadeAnim, transform: [{ translateY: filterFadeAnim.interpolate({ inputRange: [0.5, 1], outputRange: [5, 0] }) }] }} space="$4">
+                  {isFiltering && (
+                    <XStack justifyContent="center" padding="$2">
+                      <Spinner size="small" color="$blue10" />
+                    </XStack>
+                  )}
+                  {visibleNews.map((item, index) => (
+                    <NewsCard
+                      key={`${item.source}-${item.title}-${index}`}
+                      item={item}
+                      onPress={setSelectedArticle}
+                      bookmarkedArticles={bookmarkedArticles}
+                      toggleBookmark={toggleBookmark}
+                      shareArticle={shareArticle}
+                    />
+                  ))}
+                  {isLoadingMore && (
+                    <XStack justifyContent="center" padding="$4">
+                      <Spinner size="small" color="$blue10" />
+                    </XStack>
+                  )}
+                  {visibleItems >= filteredAndSortedNews.length && filteredAndSortedNews.length > 0 && (
+                    <Text textAlign="center" color="$gray9" fontSize="$3" padding="$4">
+                      No more news to load
+                    </Text>
+                  )}
+                </AnimatedYStack>
               </YStack>
             </YStack>
           </StyledScrollView>

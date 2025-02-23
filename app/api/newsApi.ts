@@ -18,7 +18,7 @@ export interface NewsItem {
   title: string;
   link: string;
   pubDate: string;
-  source: 'Gleaner' | 'Observer';
+  source: 'Gleaner' | 'Observer' | 'Loop';
   description?: string;
   creator?: string;
   category?: string[];
@@ -82,6 +82,51 @@ function removeDuplicates(articles: NewsItem[]): NewsItem[] {
   }
 
   return uniqueArticles;
+}
+
+// Function to scrape article details from Loop pages using basic string matching
+async function scrapeLoopArticle(link: string): Promise<{ imageUrl?: string; content?: string }> {
+  try {
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      'Accept': 'text/html',
+    };
+    const proxyUrl = 'https://api.allorigins.win/raw?url=';
+    const response = await axios.get(`${proxyUrl}${encodeURIComponent(link)}`, { headers });
+    const html = response.data;
+
+    // Extract image URL from og:image meta tag using regex
+    let imageUrl: string | undefined;
+    const imageMatch = html.match(/<meta property="og:image" content="([^"]+)"/i);
+    if (imageMatch && imageMatch[1]) {
+      imageUrl = imageMatch[1];
+    }
+
+    // Extract content by finding div with class "field__item" containing <p> tags using regex
+    let content = '';
+    const contentMatch = html.match(/<div class="field__item">([\s\S]*?)<\/div>/i);
+    if (contentMatch && contentMatch[1]) {
+      const paragraphs = contentMatch[1].match(/<p[^>]*>([\s\S]*?)<\/p>/gi) || [];
+      paragraphs.forEach(paragraph => {
+        const textMatch = paragraph.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
+        if (textMatch && textMatch[1]) {
+          // Remove any script or style tags and trim whitespace
+          const text = textMatch[1].replace(/<script[^>]*>[\s\S]*?<\/script>|<style[^>]*>[\s\S]*?<\/style>/gi, '').trim();
+          if (text && !text.includes('newsletter-sign-up')) { // Avoid newsletter content
+            content += text + '\n';
+          }
+        }
+      });
+    }
+
+    // Clean up the content
+    content = content.trim().replace(/\n\s*\n/g, '\n').replace(/^\s+|\s+$/g, '');
+
+    return { imageUrl, content: content || undefined };
+  } catch (error) {
+    console.error(`Failed to scrape Loop article from ${link}:`, error);
+    return { imageUrl: undefined, content: undefined };
+  }
 }
 
 // Function to scrape article details from Gleaner pages using basic string matching
@@ -149,23 +194,26 @@ export const newsApi: NewsApi = {
       const fallbackProxy = 'https://corsproxy.io/?';
       const gleanerUrl = 'https://jamaica-gleaner.com/feed/business.xml';
       const observerUrl = 'https://www.jamaicaobserver.com/feed';
+      const loopUrl = 'https://jamaica.loopnews.com/rss.xml';
 
-      let gleanerResponse, observerResponse;
+      let gleanerResponse, observerResponse, loopResponse;
 
       try {
-        [gleanerResponse, observerResponse] = await Promise.all([
+        [gleanerResponse, observerResponse, loopResponse] = await Promise.all([
           axios.get(`${primaryProxy}${encodeURIComponent(gleanerUrl)}`, { headers }),
           axios.get(`${primaryProxy}${encodeURIComponent(observerUrl)}`, { headers }),
+          axios.get(`${primaryProxy}${encodeURIComponent(loopUrl)}`, { headers }),
         ]);
       } catch (primaryError) {
         console.warn('Primary proxy failed, trying fallback...', primaryError);
-        [gleanerResponse, observerResponse] = await Promise.all([
+        [gleanerResponse, observerResponse, loopResponse] = await Promise.all([
           axios.get(`${fallbackProxy}${encodeURIComponent(gleanerUrl)}`, { headers }),
           axios.get(`${fallbackProxy}${encodeURIComponent(observerUrl)}`, { headers }),
+          axios.get(`${fallbackProxy}${encodeURIComponent(loopUrl)}`, { headers }),
         ]);
       }
 
-      if (!gleanerResponse?.data || !observerResponse?.data) {
+      if (!gleanerResponse?.data || !observerResponse?.data || !loopResponse?.data) {
         throw new Error('Failed to fetch news feeds');
       }
 
@@ -176,6 +224,7 @@ export const newsApi: NewsApi = {
 
       const gleanerJson = parser.parse(gleanerResponse.data);
       const observerJson = parser.parse(observerResponse.data);
+      const loopJson = parser.parse(loopResponse.data);
 
       const observerItems = observerJson?.rss?.channel?.item?.map((item: any) => ({
         title: item.title || '',
@@ -200,7 +249,6 @@ export const newsApi: NewsApi = {
           category: item.category ? (Array.isArray(item.category) ? item.category : [item.category]) : [],
         };
 
-        // Scrape Gleaner article for image and full content
         const scrapedData = await scrapeGleanerArticle(item.link);
         return {
           ...baseItem,
@@ -209,9 +257,31 @@ export const newsApi: NewsApi = {
         };
       });
 
-      const gleanerItems = await Promise.all(gleanerItemsPromises);
+      const loopItemsPromises = (loopJson?.rss?.channel?.item || []).map(async (item: any) => {
+        const baseItem = {
+          title: item.title || '',
+          link: item.link || '',
+          pubDate: new Date(item.pubDate || '').toISOString(),
+          description: item.description?.trim() || '',
+          creator: item['dc:creator'] || '',
+          source: 'Loop' as const,
+          category: item.category ? (Array.isArray(item.category) ? item.category : [item.category]) : [],
+        };
 
-      const allNews = [...gleanerItems, ...observerItems].sort(
+        const scrapedData = await scrapeLoopArticle(item.link);
+        return {
+          ...baseItem,
+          imageUrl: scrapedData.imageUrl || undefined,
+          content: scrapedData.content || item.description || '',
+        };
+      });
+
+      const [gleanerItems, loopItems] = await Promise.all([
+        Promise.all(gleanerItemsPromises),
+        Promise.all(loopItemsPromises),
+      ]);
+
+      const allNews = [...gleanerItems, ...observerItems, ...loopItems].sort(
         (a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()
       );
 

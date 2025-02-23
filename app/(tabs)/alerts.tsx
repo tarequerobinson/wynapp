@@ -1,46 +1,25 @@
-import { useState } from 'react';
-import {
-  View,
-  Text,
-  XStack,
-  YStack,
-  Input,
-  Button,
-  Switch,
-  ScrollView,
-  Select,
-  Sheet,
-} from 'tamagui';
-import { Plus, X, Bell, ArrowUp, ArrowDown, Mail, MessageSquare, Calendar } from '@tamagui/lucide-icons';
+import { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, FlatList, SafeAreaView, Appearance } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Bell, Plus, ChevronDown, BellOff } from '@tamagui/lucide-icons';
+import { StockCard } from '../components/alerts/StockCard';
+import { AlertCard } from '../components/alerts/AlertCard';
+import { NewAlertSheet } from '../components/alerts/NewAlertSheet';
+import { DeleteAlertDialog } from '../components/alerts/DeleteAlertDialog';
 
-type PriceAlert = {
+type Alert = {
   id: string;
-  type: 'price';
+  type: 'price' | 'event';
   symbol: string;
-  condition: 'above' | 'below';
-  price: number;
+  condition?: 'above' | 'below';
+  price?: number;
+  event?: 'earnings' | 'dividend' | 'split';
   email: boolean;
   sms: boolean;
   createdAt: Date;
 };
 
-type EventAlert = {
-  id: string;
-  type: 'event';
-  symbol: string;
-  event: 'earnings' | 'dividend' | 'split';
-  email: boolean;
-  sms: boolean;
-  createdAt: Date;
-};
-
-type Alert = PriceAlert | EventAlert;
-
-type Stock = {
-  symbol: string;
-  price: number;
-  change: number;
-};
+type Stock = { symbol: string; price: number; change: number };
 
 const MOCK_STOCKS: Stock[] = [
   { symbol: 'NCBFG', price: 150.25, change: 2.5 },
@@ -55,107 +34,25 @@ const MOCK_ALERTS: Alert[] = [
 ];
 
 export default function AlertsScreen() {
+  const insets = useSafeAreaInsets();
   const [alerts, setAlerts] = useState<Alert[]>(MOCK_ALERTS);
-  const [alertType, setAlertType] = useState<'price' | 'event'>('price');
-  const [symbol, setSymbol] = useState('');
-  const [condition, setCondition] = useState<'above' | 'below'>('above');
-  const [price, setPrice] = useState('');
-  const [event, setEvent] = useState<'earnings' | 'dividend' | 'split'>('earnings');
-  const [email, setEmail] = useState(true);
-  const [sms, setSms] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [isDark, setIsDark] = useState(Appearance.getColorScheme() === 'dark');
 
-  const SelectCondition = () => (
-    <Select
-      value={condition}
-      onValueChange={(val) => setCondition(val as 'above' | 'below')}
-    >
-      <Select.Trigger width={90} backgroundColor="$gray2" borderWidth={0}>
-        <Select.Value />
-      </Select.Trigger>
-      <Select.Content>
-        <Select.Viewport minWidth={90} backgroundColor="$gray2">
-          <Select.Item index={0} value="above">
-            <Select.ItemText>Above</Select.ItemText>
-          </Select.Item>
-          <Select.Item index={1} value="below">
-            <Select.ItemText>Below</Select.ItemText>
-          </Select.Item>
-        </Select.Viewport>
-      </Select.Content>
-    </Select>
-  );
+  useEffect(() => {
+    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
+      setIsDark(colorScheme === 'dark');
+    });
+    return () => subscription.remove();
+  }, []);
 
-  const SelectEvent = () => (
-    <Select
-      value={event}
-      onValueChange={(val) => setEvent(val as 'earnings' | 'dividend' | 'split')}
-    >
-      <Select.Trigger width={120} backgroundColor="$gray2" borderWidth={0}>
-        <Select.Value />
-      </Select.Trigger>
-      <Select.Content>
-        <Select.Viewport minWidth={120} backgroundColor="$gray2">
-          <Select.Item index={0} value="earnings">
-            <Select.ItemText>Earnings</Select.ItemText>
-          </Select.Item>
-          <Select.Item index={1} value="dividend">
-            <Select.ItemText>Dividend</Select.ItemText>
-          </Select.Item>
-          <Select.Item index={2} value="split">
-            <Select.ItemText>Split</Select.ItemText>
-          </Select.Item>
-        </Select.Viewport>
-      </Select.Content>
-    </Select>
-  );
-
-  const handleCreateAlert = () => {
-    if (!symbol) return;
-    let newAlert: Alert;
-    if (alertType === 'price' && !price) return;
-    if (alertType === 'price') {
-      newAlert = {
-        id: Math.random().toString(36).substr(2, 9),
-        type: 'price',
-        symbol: symbol.toUpperCase(),
-        condition,
-        price: Number.parseFloat(price),
-        email,
-        sms,
-        createdAt: new Date(),
-      };
-    } else {
-      newAlert = {
-        id: Math.random().toString(36).substr(2, 9),
-        type: 'event',
-        symbol: symbol.toUpperCase(),
-        event,
-        email,
-        sms,
-        createdAt: new Date(),
-      };
-    }
+  const handleCreateAlert = (newAlert: Alert) => {
     setAlerts([...alerts, newAlert]);
-    setShowForm(false);
-    resetForm();
   };
 
-  const resetForm = () => {
-    setSymbol('');
-    setPrice('');
-    setCondition('above');
-    setEvent('earnings');
-    setAlertType('price');
-    setEmail(true);
-    setSms(false);
-  };
-
-  const handleDeleteAlert = (id: string) => {
-    setShowDeleteConfirm(id);
-  };
+  const handleDeleteAlert = (id: string) => setShowDeleteConfirm(id);
 
   const confirmDelete = () => {
     if (showDeleteConfirm) {
@@ -164,15 +61,10 @@ export default function AlertsScreen() {
     }
   };
 
-  const toggleNotification = (id: string, type: 'email' | 'sms') => {
-    setAlerts(
-      alerts.map((alert) =>
-        alert.id === id
-          ? { ...alert, [type]: !alert[type] }
-          : alert
-      )
-    );
-  };
+  const toggleNotification = (id: string, type: 'email' | 'sms') =>
+    setAlerts(alerts.map((alert) =>
+      alert.id === id ? { ...alert, [type]: !alert[type] } : alert
+    ));
 
   const sortedAlerts = [...alerts].sort((a, b) =>
     sortOrder === 'desc'
@@ -181,283 +73,82 @@ export default function AlertsScreen() {
   );
 
   return (
-    <View flex={1} backgroundColor="$background">
-      {/* Header with Ticker */}
-      <YStack padding="$3" backgroundColor="$background">
-        <XStack alignItems="center" space="$2" marginBottom="$2">
-          <Bell size="$2" color="$gray10" />
-          <Text fontSize="$8" fontWeight="bold" color="$color">
-            Stock Alerts
-          </Text>
-        </XStack>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <XStack space="$3">
-            {MOCK_STOCKS.map((stock) => (
-              <XStack key={stock.symbol} space="$2" alignItems="center">
-                <Text fontSize="$5" fontWeight="600" color="$color">{stock.symbol}</Text>
-                <Text fontSize="$4" color="$gray10">J${stock.price.toFixed(2)}</Text>
-                <Text fontSize="$3" color={stock.change >= 0 ? '$green9' : '$red9'}>
-                  {stock.change >= 0 ? '+' : ''}{stock.change}%
-                </Text>
-              </XStack>
-            ))}
-          </XStack>
-        </ScrollView>
-      </YStack>
+    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#000' : '#f5f5f5' }]}>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}>
 
-      {/* Alerts List */}
-      <ScrollView flex={1}>
-        <YStack padding="$3" space="$3">
-          <XStack justifyContent="space-between" alignItems="center">
-            <Text fontSize="$5" color="$gray10">{alerts.length} Alerts</Text>
-            <Button
-              size="$2"
-              chromeless
-              onPress={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-              color="$blue10"
-            >
-              Sort {sortOrder === 'desc' ? '↑' : '↓'}
-            </Button>
-          </XStack>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.stocksScroll}>
+          {MOCK_STOCKS.map((stock) => (
+            <StockCard key={stock.symbol} stock={stock} isDark={isDark} />
+          ))}
+        </ScrollView>
+
+        <View style={styles.alertsSection}>
+          <View style={styles.alertsHeader}>
+            <Text style={[styles.alertsTitle, { color: isDark ? '#fff' : '#000' }]}>Your Alerts ({alerts.length})</Text>
+            <TouchableOpacity onPress={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}>
+              <View style={styles.sortButton}>
+                <Text style={[styles.sortText, { color: isDark ? '#fff' : '#000' }]}>Sort</Text>
+                <ChevronDown size={16} color={isDark ? '#fff' : '#000'} style={sortOrder === 'asc' ? { transform: [{ rotate: '180deg' }] } : {}} />
+              </View>
+            </TouchableOpacity>
+          </View>
+
           {alerts.length === 0 ? (
-            <YStack alignItems="center" padding="$4" backgroundColor="$gray3">
-              <Bell size="$2" color="$gray8" />
-              <Text fontSize="$5" color="$gray10" marginTop="$2">No Alerts Yet</Text>
-              <Text fontSize="$3" color="$gray8" marginTop="$1">
-                Tap + to create one
-              </Text>
-            </YStack>
+            <View style={[styles.noAlerts, { backgroundColor: isDark ? '#1a1a1a' : '#fff', borderColor: isDark ? '#333' : '#ddd' }]}>
+              <BellOff size={40} color={isDark ? '#999' : '#666'} />
+              <Text style={[styles.noAlertsTitle, { color: isDark ? '#fff' : '#000' }]}>No Alerts Yet</Text>
+              <Text style={[styles.noAlertsText, { color: isDark ? '#ccc' : '#666' }]}>Tap + to create your first alert</Text>
+            </View>
           ) : (
-            sortedAlerts.map((alert) => (
-              <YStack
-                key={alert.id}
-                padding="$3"
-                backgroundColor="$background"
-                borderRadius="$4"
-                space="$2"
-              >
-                <XStack justifyContent="space-between" alignItems="center">
-                  <XStack space="$2" alignItems="center">
-                    {alert.type === 'price' ? (
-                      alert.condition === 'above' ? (
-                        <ArrowUp size="$1" color="$green9" />
-                      ) : (
-                        <ArrowDown size="$1" color="$red9" />
-                      )
-                    ) : (
-                      <Calendar size="$1" color="$blue10" />
-                    )}
-                    <YStack>
-                      <Text fontSize="$6" fontWeight="600" color="$color">{alert.symbol}</Text>
-                      <Text fontSize="$4" color="$gray10">
-                        {alert.type === 'price'
-                          ? `J$${alert.price.toFixed(2)}`
-                          : alert.event.charAt(0).toUpperCase() + alert.event.slice(1)}
-                      </Text>
-                    </YStack>
-                  </XStack>
-                  <Button
-                    size="$2"
-                    chromeless
-                    icon={<X size="$1" color="$red10" />}
-                    onPress={() => handleDeleteAlert(alert.id)}
-                  />
-                </XStack>
-                <XStack space="$3" justifyContent="flex-end">
-                  <XStack space="$1" alignItems="center">
-                    <Mail size="$1" color={alert.email ? '$blue10' : '$gray8'} />
-                    <Switch
-                      size="$1"
-                      checked={alert.email}
-                      onCheckedChange={() => toggleNotification(alert.id, 'email')}
-                      backgroundColor={alert.email ? '$blue10' : '$gray8'}
-                    >
-                      <Switch.Thumb animation="quick" backgroundColor="$white" />
-                    </Switch>
-                  </XStack>
-                  <XStack space="$1" alignItems="center">
-                    <MessageSquare size="$1" color={alert.sms ? '$blue10' : '$gray8'} />
-                    <Switch
-                      size="$1"
-                      checked={alert.sms}
-                      onCheckedChange={() => toggleNotification(alert.id, 'sms')}
-                      backgroundColor={alert.sms ? '$blue10' : '$gray8'}
-                    >
-                      <Switch.Thumb animation="quick" backgroundColor="$white" />
-                    </Switch>
-                  </XStack>
-                </XStack>
-              </YStack>
-            ))
+            <FlatList
+              data={sortedAlerts}
+              renderItem={({ item }) => (
+                <AlertCard
+                  alert={item}
+                  onDelete={handleDeleteAlert}
+                  onToggleNotification={toggleNotification}
+                  isDark={isDark}
+                />
+              )}
+              keyExtractor={(item) => item.id}
+              scrollEnabled={false}
+            />
           )}
-        </YStack>
+        </View>
       </ScrollView>
 
-      {/* Floating Add Button */}
-      <Button
-        position="absolute"
-        bottom="$5"
-        right="$5"
-        size="$5"
-        circular
-        backgroundColor="$blue10"
-        icon={<Plus size="$2" color="$white" />}
-        onPress={() => setShowForm(true)}
-      />
+      <TouchableOpacity style={[styles.fab, { bottom: insets.bottom + 16 }]} onPress={() => setShowForm(true)}>
+        <Plus size={24} color="#fff" />
+      </TouchableOpacity>
 
-      {/* Form Sheet */}
-      <Sheet
-        open={showForm}
-        onOpenChange={setShowForm}
-        snapPoints={[55]}
-        dismissOnSnapToBottom
-      >
-        <Sheet.Overlay backgroundColor="$gray10" opacity={0.5} />
-        <Sheet.Frame padding="$4" backgroundColor="$background">
-          <YStack space="$4">
-            <XStack justifyContent="space-between" alignItems="center">
-              <Text fontSize="$7" fontWeight="bold" color="$color">New Alert</Text>
-              <Button
-                chromeless
-                size="$2"
-                icon={<X size="$1" color="$gray10" />}
-                onPress={() => setShowForm(false)}
-              />
-            </XStack>
-
-            <XStack space="$2">
-              <Input
-                flex={1}
-                placeholder="Symbol"
-                value={symbol}
-                onChangeText={setSymbol}
-                autoCapitalize="characters"
-                backgroundColor="$gray2"
-                borderWidth={0}
-                borderRadius="$2"
-                padding="$2"
-                color="$color"
-              />
-              <Select
-                value={alertType}
-                onValueChange={(val) => setAlertType(val as 'price' | 'event')}
-              >
-                <Select.Trigger width={90} backgroundColor="$gray2" borderWidth={0}>
-                  <Select.Value />
-                </Select.Trigger>
-                <Select.Content>
-                  <Select.Viewport minWidth={90} backgroundColor="$gray2">
-                    <Select.Item index={0} value="price">
-                      <Select.ItemText>Price</Select.ItemText>
-                    </Select.Item>
-                    <Select.Item index={1} value="event">
-                      <Select.ItemText>Event</Select.ItemText>
-                    </Select.Item>
-                  </Select.Viewport>
-                </Select.Content>
-              </Select>
-            </XStack>
-
-            {alertType === 'price' ? (
-              <XStack space="$2">
-                <SelectCondition />
-                <Input
-                  flex={1}
-                  placeholder="Price (J$)"
-                  keyboardType="numeric"
-                  value={price}
-                  onChangeText={setPrice}
-                  backgroundColor="$gray2"
-                  borderWidth={0}
-                  borderRadius="$2"
-                  padding="$2"
-                  color="$color"
-                />
-              </XStack>
-            ) : (
-              <SelectEvent />
-            )}
-
-            <XStack justifyContent="space-between">
-              <XStack space="$2" alignItems="center">
-                <Switch
-                  size="$2"
-                  checked={email}
-                  onCheckedChange={setEmail}
-                  backgroundColor={email ? '$blue10' : '$gray8'}
-                >
-                  <Switch.Thumb animation="quick" backgroundColor="$white" />
-                </Switch>
-                <Mail size="$1" color={email ? '$blue10' : '$gray8'} />
-                <Text fontSize="$4" color="$color">Email</Text>
-              </XStack>
-              <XStack space="$2" alignItems="center">
-                <Switch
-                  size="$2"
-                  checked={sms}
-                  onCheckedChange={setSms}
-                  backgroundColor={sms ? '$blue10' : '$gray8'}
-                >
-                  <Switch.Thumb animation="quick" backgroundColor="$white" />
-                </Switch>
-                <MessageSquare size="$1" color={sms ? '$blue10' : '$gray8'} />
-                <Text fontSize="$4" color="$color">SMS</Text>
-              </XStack>
-            </XStack>
-
-            <Button
-              backgroundColor="$blue10"
-              color="$white"
-              size="$4"
-              borderRadius="$3"
-              onPress={handleCreateAlert}
-              disabled={!symbol || (alertType === 'price' && !price)}
-              opacity={!symbol || (alertType === 'price' && !price) ? 0.6 : 1}
-            >
-              Set Alert
-            </Button>
-          </YStack>
-        </Sheet.Frame>
-      </Sheet>
-
-      {/* Delete Confirmation Sheet */}
-      <Sheet
-        open={!!showDeleteConfirm}
-        onOpenChange={(open) => !open && setShowDeleteConfirm(null)}
-        snapPoints={[30]}
-        dismissOnSnapToBottom
-      >
-        <Sheet.Overlay backgroundColor="$gray10" opacity={0.5} />
-        <Sheet.Frame padding="$4" backgroundColor="$background">
-          <YStack space="$4">
-            <Text fontSize="$6" fontWeight="bold" color="$color">
-              Are you sure you want to delete this alert?
-            </Text>
-            <XStack space="$2">
-              <Button
-                flex={1}
-                backgroundColor="$red10"
-                color="$white"
-                size="$4"
-                borderRadius="$3"
-                onPress={confirmDelete}
-              >
-                Yes, Delete
-              </Button>
-              <Button
-                flex={1}
-                backgroundColor="$gray8"
-                color="$white"
-                size="$4"
-                borderRadius="$3"
-                onPress={() => setShowDeleteConfirm(null)}
-              >
-                Cancel
-              </Button>
-            </XStack>
-          </YStack>
-        </Sheet.Frame>
-      </Sheet>
-    </View>
+      <NewAlertSheet isOpen={showForm} onOpenChange={setShowForm} isDark={isDark} onCreate={handleCreateAlert} />
+      <DeleteAlertDialog isOpen={!!showDeleteConfirm} onOpenChange={(open) => !open && setShowDeleteConfirm(null)} onConfirm={confirmDelete} isDark={isDark} />
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 12 },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', marginLeft: 8 },
+  stocksScroll: { paddingHorizontal: 12 },
+  alertsSection: { padding: 12 },
+  alertsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  alertsTitle: { fontSize: 20, fontWeight: '600' },
+  sortButton: { flexDirection: 'row', alignItems: 'center' },
+  sortText: { fontSize: 14 },
+  noAlerts: { borderRadius: 8, padding: 20, alignItems: 'center', borderWidth: 1 },
+  noAlertsTitle: { fontSize: 18, fontWeight: '600', marginTop: 8 },
+  noAlertsText: { fontSize: 14, textAlign: 'center', marginTop: 4 },
+  fab: {
+    position: 'absolute',
+    right: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#0066cc',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+  },
+});

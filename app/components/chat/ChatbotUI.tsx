@@ -7,7 +7,6 @@ import {
   Button,
   Text,
   Card,
-  AnimatePresence,
   Spinner,
   useTheme,
 } from 'tamagui';
@@ -319,149 +318,136 @@ export const ChatbotUI = memo(({
 
   return (
     <View flex={1} backgroundColor={isDark ? '$gray1Dark' : '$white'}>
-      <AnimatePresence>
-        <YStack 
-          key="chatbot-ui"
+      <YStack 
+        key="chatbot-ui"
+        flex={1}
+      >
+        <ToastNotification 
+          visible={toastVisible}
+          title={toastTitle}
+          message={toastMessage}
+          bgColor={toastBgColor}
+        />
+
+        {showShowcase && (
+          <XStack padding="$2" space="$2">
+            <Button
+              size="$2"
+              borderRadius="$8"
+              backgroundColor={isDark ? '$green9' : '$green2'}
+              elevation={isDark ? 0 : 1}
+              onPress={() => {
+                setShowShowcase(false);
+                setMessages((prev) => [
+                  ...prev,
+                  { id: Date.now().toString(), text: "You can set goals by chatting with me!", sender: 'bot', timestamp: new Date(), status: 'sent', type: 'regular' },
+                ]);
+              }}
+              icon={<Timer size={16} color={isDark ? '$white' : '$green9'} />}
+            >
+              <Text fontSize="$3" color={isDark ? '$white' : '$green7'}>Set Goals</Text>
+            </Button>
+            <Button
+              size="$2"
+              borderRadius="$8"
+              backgroundColor={isDark ? '$yellow9' : '$yellow2'}
+              elevation={isDark ? 0 : 1}
+              onPress={() => {
+                setShowShowcase(false);
+                setMessages((prev) => [
+                  ...prev,
+                  { id: Date.now().toString(), text: "You can set alerts for important events!", sender: 'bot', timestamp: new Date(), status: 'sent', type: 'regular' },
+                ]);
+              }}
+              icon={<Bell size={16} color={isDark ? '$black' : '$yellow9'} />}
+            >
+              <Text fontSize="$3" color={isDark ? '$black' : '$yellow9'}>Set Alerts</Text>
+            </Button>
+            <Button
+              size="$2"
+              borderRadius="$8"
+              backgroundColor={isDark ? '$gray9' : '$gray2'}
+              elevation={isDark ? 0 : 1}
+              onPress={() => {
+                setShowShowcase(false);
+                handleUpload();
+              }}
+              icon={<File size={16} color={isDark ? '$white' : '$gray9'} />}
+            >
+              <Text fontSize="$3" color={isDark ? '$white' : '$gray9'}>Upload Docs</Text>
+            </Button>
+          </XStack>
+        )}
+
+        {showDisclaimer && (
+          <XStack padding="$2">
+            <Card
+              backgroundColor={theme.name === 'dark' ? '$gray3Dark' : '$gray1Light'}
+              padding="$2"
+              borderRadius="$4"
+              flex={1}
+              elevation={theme.name === 'light' ? 1 : 0}
+            >
+              <XStack space="$1" alignItems="center">
+                <Info size={14} color="$red9" />
+                <Text color={theme.name === 'dark' ? '$gray12' : '$gray11'} fontSize="$2">
+                  The information provided is not financial advice.
+                  <Button size="$2" chromeless color="$red9" onPress={() => setShowDisclaimer(false)}>
+                    Dismiss
+                  </Button>
+                </Text>
+              </XStack>
+            </Card>
+          </XStack>
+        )}
+
+        <ScrollView
+          ref={scrollViewRef}
           flex={1}
-          animation="quick"
-          enterStyle={{
-            opacity: 0,
-            x: 50,
-            rotate: '-5deg',
-          }}
-          exitStyle={{
-            opacity: 0,
-            x: -50,
-            rotate: '5deg',
-          }}
+          contentContainerStyle={{ paddingVertical: '$0', gap: '$1' }}
+          showsVerticalScrollIndicator={false}
+          backgroundColor={isDark ? '$gray1Dark' : '$white'}
         >
-          <ToastNotification 
-            visible={toastVisible}
-            title={toastTitle}
-            message={toastMessage}
-            bgColor={toastBgColor}
-          />
+          {messageList()}
+        </ScrollView>
 
-          {showShowcase && (
-            <XStack padding="$2" space="$2" animation="lazy" enterStyle={{ opacity: 0, y: -10 }} exitStyle={{ opacity: 0, y: -10 }}>
-              <Button
-                size="$2"
-                borderRadius="$8"
-                backgroundColor={isDark ? '$green9' : '$green2'}
-                elevation={isDark ? 0 : 1}
-                onPress={() => {
-                  setShowShowcase(false);
-                  setMessages((prev) => [
-                    ...prev,
-                    { id: Date.now().toString(), text: "You can set goals by chatting with me!", sender: 'bot', timestamp: new Date(), status: 'sent', type: 'regular' },
-                  ]);
-                }}
-                icon={<Timer size={16} color={isDark ? '$white' : '$green9'} />}
-              >
-                <Text fontSize="$3" color={isDark ? '$white' : '$green7'}>Set Goals</Text>
-              </Button>
-              <Button
-                size="$2"
-                borderRadius="$8"
-                backgroundColor={isDark ? '$yellow9' : '$yellow2'}
-                elevation={isDark ? 0 : 1}
-                onPress={() => {
-                  setShowShowcase(false);
-                  setMessages((prev) => [
-                    ...prev,
-                    { id: Date.now().toString(), text: "You can set alerts for important events!", sender: 'bot', timestamp: new Date(), status: 'sent', type: 'regular' },
-                  ]);
-                }}
-                icon={<Bell size={16} color={isDark ? '$black' : '$yellow9'} />}
-              >
-                <Text fontSize="$3" color={isDark ? '$black' : '$yellow9'}>Set Alerts</Text>
-              </Button>
-              <Button
-                size="$2"
-                borderRadius="$8"
-                backgroundColor={isDark ? '$gray9' : '$gray2'}
-                elevation={isDark ? 0 : 1}
-                onPress={() => {
-                  setShowShowcase(false);
-                  handleUpload();
-                }}
-                icon={<File size={16} color={isDark ? '$white' : '$gray9'} />}
-              >
-                <Text fontSize="$3" color={isDark ? '$white' : '$gray9'}>Upload Docs</Text>
-              </Button>
-            </XStack>
-          )}
-
-          {showDisclaimer && (
-            <XStack padding="$2" animation="lazy" enterStyle={{ opacity: 0, y: -10 }}>
-              <Card
-                backgroundColor={theme.name === 'dark' ? '$gray3Dark' : '$gray1Light'}
-                padding="$2"
-                borderRadius="$4"
-                flex={1}
-                elevation={theme.name === 'light' ? 1 : 0}
-              >
-                <XStack space="$1" alignItems="center">
-                  <Info size={14} color="$red9" />
-                  <Text color={theme.name === 'dark' ? '$gray12' : '$gray11'} fontSize="$2">
-                    The information provided is not financial advice.
-                    <Button size="$2" chromeless color="$red9" onPress={() => setShowDisclaimer(false)}>
-                      Dismiss
-                    </Button>
-                  </Text>
-                </XStack>
-              </Card>
-            </XStack>
-          )}
-
-          <ScrollView
-            ref={scrollViewRef}
-            flex={1}
-            contentContainerStyle={{ paddingVertical: '$0', gap: '$1' }}
-            showsVerticalScrollIndicator={false}
-            backgroundColor={isDark ? '$gray1Dark' : '$white'}
-          >
-            {messageList()}
-          </ScrollView>
-
-          {!isInputFocused && (
-            <QuickPrompts 
-              prompts={quickPrompts}
-              onPromptClick={handlePromptClick}
-              isDark={isDark}
-            />
-          )}
-
-          <ChatInput
-            input={input}
-            isTyping={isTyping}
-            isVoiceModeActive={isVoiceModeActive}
-            onInputChange={setInput}
-            onSend={handleSend}
-            onToggleVoiceMode={toggleVoiceMode}
-            onCaptureImage={handleCaptureImage}
-            onUpload={handleUpload}
-            isDark={isDark}
-            inputRef={inputRef}
-            isInputFocused={isInputFocused}
-            setIsInputFocused={setIsInputFocused}
-          />
-
-          <GoalEditorSheet
-            goal={editingGoal}
-            onClose={() => setEditingGoal(null)}
-            onSave={handleConfirmGoal}
+        {!isInputFocused && (
+          <QuickPrompts 
+            prompts={quickPrompts}
+            onPromptClick={handlePromptClick}
             isDark={isDark}
           />
+        )}
 
-          <AlertEditorSheet
-            alert={editingAlert}
-            onClose={() => setEditingAlert(null)}
-            onSave={handleConfirmAlert}
-            isDark={isDark}
-          />
-        </YStack>
-      </AnimatePresence>
+        <ChatInput
+          input={input}
+          isTyping={isTyping}
+          isVoiceModeActive={isVoiceModeActive}
+          onInputChange={setInput}
+          onSend={handleSend}
+          onToggleVoiceMode={toggleVoiceMode}
+          onCaptureImage={handleCaptureImage}
+          onUpload={handleUpload}
+          isDark={isDark}
+          inputRef={inputRef}
+          isInputFocused={isInputFocused}
+          setIsInputFocused={setIsInputFocused}
+        />
+
+        <GoalEditorSheet
+          goal={editingGoal}
+          onClose={() => setEditingGoal(null)}
+          onSave={handleConfirmGoal}
+          isDark={isDark}
+        />
+
+        <AlertEditorSheet
+          alert={editingAlert}
+          onClose={() => setEditingAlert(null)}
+          onSave={handleConfirmAlert}
+          isDark={isDark}
+        />
+      </YStack>
     </View>
   );
 }, (prevProps, nextProps) => {
