@@ -7,7 +7,11 @@ interface ChatHistoryItemProps {
   theme: ReturnType<typeof useTheme>;
 }
 
-export default function ChatHistoryItem({ chat, theme }: ChatHistoryItemProps) {
+export default function ChatHistoryItem({ chat }: ChatHistoryItemProps) {
+
+
+  const theme = useTheme();
+
   return (
     <YStack 
       padding="$3"

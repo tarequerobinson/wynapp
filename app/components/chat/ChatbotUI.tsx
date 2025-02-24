@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useCallback, memo } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
+import { Animated, RefreshControl } from 'react-native';
 import {
-  View,
   YStack,
   XStack,
   ScrollView,
@@ -9,6 +9,8 @@ import {
   Card,
   Spinner,
   useTheme,
+  styled,
+  Input,
 } from 'tamagui';
 import {
   Timer,
@@ -19,11 +21,19 @@ import {
   Percent,
   DollarSign,
   AlertTriangle,
+  Search,
+  Share2,
+  Bookmark,
+  ChevronDown,
+  Volume2,
+  VolumeX,
 } from '@tamagui/lucide-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { chatbotApi, QuickPrompt } from '@/api/chatbot';
 import * as Speech from 'expo-speech';
 import * as ImagePicker from 'expo-image-picker';
+import * as Haptics from 'expo-haptics';
+import { Share } from 'react-native';
 import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput2';
 import { QuickPrompts } from './QuickPrompts';
@@ -31,6 +41,134 @@ import { ToastNotification } from './ToastNotification';
 import { GoalEditorSheet } from './GoalEditorSheet';
 import { AlertEditorSheet } from './AlertEditorSheet';
 import { ChatbotUIProps, Message, ChatHistoryItem } from './types';
+
+// Styled Components
+const ChatContainer = styled(YStack, {
+  name: 'ChatContainer',
+  flex: 1,
+  backgroundColor: '$background',
+  variants: {
+    dark: {
+      true: { backgroundColor: '$gray1Dark' },
+    },
+  },
+});
+
+const ChatScrollView = styled(ScrollView, {
+  name: 'ChatScrollView',
+  backgroundColor: '$background',
+  variants: {
+    dark: {
+      true: { backgroundColor: '$gray1Dark' },
+    },
+  },
+});
+
+const ShowcaseContainer = styled(XStack, {
+  name: 'ShowcaseContainer',
+  padding: '$1', // Smaller padding than before
+  space: '$1', // Tighter spacing between buttons
+  flexWrap: 'wrap', // Allows buttons to wrap to the next line if needed
+  justifyContent: 'center', // Centers buttons horizontally
+  backgroundColor: '$gray2',
+  variants: {
+    dark: {
+      true: { backgroundColor: '$gray3Dark' },
+    },
+  },
+});
+
+const DisclaimerCard = styled(Card, {
+  name: 'DisclaimerCard',
+  backgroundColor: '$gray1Light',
+  padding: '$2',
+  borderRadius: '$4',
+  flex: 1,
+  elevation: '$1',
+  variants: {
+    dark: {
+      true: { 
+        backgroundColor: '$gray3Dark',
+        elevation: 0,
+      },
+    },
+  },
+});
+
+const MessageContainer = styled(YStack, {
+  name: 'MessageContainer',
+  space: '$1',
+  variants: {
+    dark: {
+      true: { backgroundColor: '$gray1Dark' },
+    },
+  },
+});
+
+const StyledButton = styled(Button, {
+  name: 'StyledButton',
+  borderRadius: '$3', // Smaller, tighter corners
+  paddingHorizontal: '$2', // Reduced padding for compactness
+  paddingVertical: '$1',
+  justifyContent: 'center', // Center icon and text
+  pressStyle: { opacity: 0.85 },
+  variants: {
+    variant: {
+      green: {
+        backgroundColor: '$green3Light',
+        borderColor: '$green7',
+        borderWidth: 1,
+        hoverStyle: { backgroundColor: '$green4Light' },
+      },
+      yellow: {
+        backgroundColor: '$yellow3Light',
+        borderColor: '$yellow7',
+        borderWidth: 1,
+        hoverStyle: { backgroundColor: '$yellow4Light' },
+      },
+      gray: {
+        backgroundColor: '$gray3Light',
+        borderColor: '$gray7',
+        borderWidth: 1,
+        hoverStyle: { backgroundColor: '$gray4Light' },
+      },
+    },
+    dark: {
+      true: {
+        variant: {
+          green: {
+            backgroundColor: '$green3Dark',
+            borderColor: '$green9',
+            hoverStyle: { backgroundColor: '$green4Dark' },
+          },
+          yellow: {
+            backgroundColor: '$yellow3Dark',
+            borderColor: '$yellow9',
+            hoverStyle: { backgroundColor: '$yellow4Dark' },
+          },
+          gray: {
+            backgroundColor: '$gray3Dark',
+            borderColor: '$gray9',
+            hoverStyle: { backgroundColor: '$gray4Dark' },
+          },
+        },
+      },
+    },
+  } as const,
+});
+
+const TypingIndicator = styled(XStack, {
+  name: 'TypingIndicator',
+  paddingHorizontal: '$2',
+  paddingVertical: '$1',
+  variants: {
+    dark: {
+      true: {
+        backgroundColor: '$gray3Dark',
+      },
+    },
+  },
+});
 
 export const ChatbotUI = memo(({
   initialMessage = "Hello! I'm your AI assistant. How can I help you today?",
@@ -53,14 +191,17 @@ export const ChatbotUI = memo(({
   const [toastMessage, setToastMessage] = useState<string>('');
   const [toastBgColor, setToastBgColor] = useState<string>('$gray9');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isVoiceModeActive, setIsVoiceModeActive] = useState(false);
+  const [showShowcase, setShowShowcase] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([
     { id: '1', title: 'Investment Options', date: new Date('2025-02-20') },
     { id: '2', title: 'Tax Questions', date: new Date('2025-02-19') },
   ]);
-  const [isVoiceModeActive, setIsVoiceModeActive] = useState(false);
-  const [showShowcase, setShowShowcase] = useState(true);
+
   const inputRef = useRef<Input>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   const quickPrompts: QuickPrompt[] = [
     { text: "What are the current best investment opportunities in the Jamaican market for a conservative investor?", category: "investment", icon: PieChart },
@@ -76,7 +217,7 @@ export const ChatbotUI = memo(({
         { id: 'initial', text: initialMessage, sender: 'bot', timestamp: new Date(), status: 'sent', type: 'regular' },
       ]);
     }
-  }, [initialMessage]);
+  }, [initialMessage, messages.length]);
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => {
@@ -88,10 +229,11 @@ export const ChatbotUI = memo(({
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  const toggleVoiceMode = () => {
+  const toggleVoiceMode = useCallback(() => {
     if (isVoiceModeActive) {
       setIsVoiceModeActive(false);
       Speech.stop();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } else {
       setIsVoiceModeActive(true);
       inputRef.current?.focus();
@@ -99,9 +241,10 @@ export const ChatbotUI = memo(({
       setToastMessage('Tap the mic on your keyboard to speak.');
       setToastBgColor('$blue9');
       setToastVisible(true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setTimeout(() => setToastVisible(false), 3000);
     }
-  };
+  }, [isVoiceModeActive]);
 
   const handleSend = useCallback(async () => {
     if (!input?.trim() || isTyping) return;
@@ -114,9 +257,11 @@ export const ChatbotUI = memo(({
       status: 'sending',
       type: 'regular',
     };
+
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsTyping(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     try {
       const botMessage = await chatbotApi.sendMessage(input.trim());
@@ -154,6 +299,7 @@ export const ChatbotUI = memo(({
           .map((msg) => (msg.id === userMessage.id ? { ...msg, status: 'error' } : msg))
           .concat(errorMessage)
       );
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsTyping(false);
     }
@@ -170,6 +316,7 @@ export const ChatbotUI = memo(({
     };
     setMessages((prev) => [...prev, userMessage]);
     setIsTyping(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     try {
       const botMessage = await chatbotApi.sendQuickPrompt(prompt);
@@ -207,6 +354,7 @@ export const ChatbotUI = memo(({
           .map((msg) => (msg.id === userMessage.id ? { ...msg, status: 'error' } : msg))
           .concat(errorMessage)
       );
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsTyping(false);
     }
@@ -217,6 +365,7 @@ export const ChatbotUI = memo(({
     setToastMessage(`Goal "${goalData!.title}" has been set for $${goalData!.target} JMD by ${goalData!.timeframe}.`);
     setToastBgColor('$green9');
     setToastVisible(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Success);
     setTimeout(() => setToastVisible(false), 3000);
     onConfirmGoal?.(goalData);
     setMessages((prev) => [...prev]);
@@ -227,6 +376,7 @@ export const ChatbotUI = memo(({
     setToastMessage(`${alertData!.type} alert set for ${alertData!.target} when ${alertData!.condition}.`);
     setToastBgColor('$yellow9');
     setToastVisible(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Success);
     setTimeout(() => setToastVisible(false), 3000);
     onConfirmAlert?.(alertData);
     setMessages((prev) => [...prev]);
@@ -234,19 +384,21 @@ export const ChatbotUI = memo(({
 
   const handleUpload = useCallback(async () => {
     setIsTyping(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       const botMessage = await chatbotApi.uploadAndAnalyzePdf();
       setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
       const errorMessage: Message = {
         id: Date.now().toString(),
-        text: 'Sorry, I couldn’t process the PDF. Please ensure it’s a valid financial document and try again.',
+        text: 'Sorry, I could not process the PDF. Please ensure it is a valid financial document and try again.',
         sender: 'bot',
         timestamp: new Date(),
         status: 'error',
         type: 'pdf-response',
       };
       setMessages((prev) => [...prev, errorMessage]);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsTyping(false);
     }
@@ -267,6 +419,7 @@ export const ChatbotUI = memo(({
     if (!result.canceled && result.assets) {
       const imageUri = result.assets[0].uri;
       setIsTyping(true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
       try {
         const botMessage = await chatbotApi.processImage(imageUri, {
@@ -281,13 +434,14 @@ export const ChatbotUI = memo(({
       } catch (error) {
         const errorMessage: Message = {
           id: Date.now().toString(),
-          text: 'Sorry, I couldn’t process the image. Please ensure it’s a clear finance-related document (e.g., receipt, payslip) and try again.',
+          text: 'Sorry, I could not process the image. Please ensure it is a clear finance-related document (e.g., receipt, payslip) and try again.',
           sender: 'bot',
           timestamp: new Date(),
           status: 'error',
           type: 'image-response',
         };
         setMessages((prev) => [...prev, errorMessage]);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       } finally {
         setIsTyping(false);
       }
@@ -295,7 +449,7 @@ export const ChatbotUI = memo(({
   }, []);
 
   const messageList = useCallback(() => (
-    <YStack space="$1">
+    <MessageContainer dark={isDark}>
       {(messages || []).map((message) => (
         <MessageBubble 
           key={message.id} 
@@ -304,151 +458,167 @@ export const ChatbotUI = memo(({
           onEditGoal={setEditingGoal}
           onConfirmAlert={handleConfirmAlert}
           onEditAlert={setEditingAlert}
+          dark={isDark}
         />
       ))}
       {isTyping && (
-        <XStack paddingHorizontal="$2" paddingVertical="$1">
-          <Card backgroundColor="$gray6" borderRadius="$4" padding="$2">
-            <Spinner size="small" color="white" />
+        <TypingIndicator dark={isDark}>
+          <Card backgroundColor={isDark ? '$gray6Dark' : '$gray6'} borderRadius="$4" padding="$2">
+            <Spinner size="small" color={isDark ? '$gray12' : 'white'} />
           </Card>
-        </XStack>
+        </TypingIndicator>
       )}
-    </YStack>
-  ), [messages, isTyping, handleConfirmGoal, handleConfirmAlert]);
+    </MessageContainer>
+  ), [messages, isTyping, handleConfirmGoal, handleConfirmAlert, isDark]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    // Simulate refresh
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 2000);
+  }, []);
 
   return (
-    <View flex={1} backgroundColor={isDark ? '$gray1Dark' : '$white'}>
-      <YStack 
-        key="chatbot-ui"
+    <ChatContainer dark={isDark}>
+      <ToastNotification 
+        visible={toastVisible}
+        title={toastTitle}
+        message={toastMessage}
+        bgColor={toastBgColor}
+        dark={isDark}
+      />
+
+      {showShowcase && (
+        <ShowcaseContainer dark={isDark}>
+          <StyledButton
+            size="$2" // Back to original small size
+            variant="green"
+            dark={isDark}
+            onPress={() => {
+              setShowShowcase(false);
+              setMessages((prev) => [
+                ...prev,
+                { id: Date.now().toString(), text: "You can set goals by chatting with me!", sender: 'bot', timestamp: new Date(), status: 'sent', type: 'regular' },
+              ]);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            icon={<Timer size={14} color={isDark ? '$green9' : '$green7'} />} // Smaller icon
+          >
+            <Text fontSize="$2" color={isDark ? '$green9' : '$green7'}>Goals</Text> {/* Shortened text */}
+          </StyledButton>
+
+          <StyledButton
+            size="$2"
+            variant="yellow"
+            dark={isDark}
+            onPress={() => {
+              setShowShowcase(false);
+              setMessages((prev) => [
+                ...prev,
+                { id: Date.now().toString(), text: "You can set alerts for important events!", sender: 'bot', timestamp: new Date(), status: 'sent', type: 'regular' },
+              ]);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            icon={<Bell size={14} color={isDark ? '$yellow9' : '$yellow7'} />}
+          >
+            <Text fontSize="$2" color={isDark ? '$yellow9' : '$yellow7'}>Alerts</Text> {/* Shortened text */}
+          </StyledButton>
+
+          <StyledButton
+            size="$2"
+            variant="gray"
+            dark={isDark}
+            onPress={() => {
+              setShowShowcase(false);
+              handleUpload();
+            }}
+            icon={<File size={14} color={isDark ? '$gray9' : '$gray7'} />}
+          >
+            <Text fontSize="$2" color={isDark ? '$gray9' : '$gray7'}>Docs</Text> {/* Shortened text */}
+          </StyledButton>
+        </ShowcaseContainer>
+      )}
+
+      {showDisclaimer && (
+        <XStack padding="$2">
+          <DisclaimerCard dark={isDark}>
+            <XStack space="$1" alignItems="center">
+              <Info size={14} color="$red9" />
+              <Text color={isDark ? '$gray12' : '$gray11'} fontSize="$2">
+                The information provided is not financial advice.
+                <Button 
+                  size="$2" 
+                  chromeless 
+                  color="$red9" 
+                  onPress={() => {
+                    setShowDisclaimer(false);
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                >
+                  Dismiss
+                </Button>
+              </Text>
+            </XStack>
+          </DisclaimerCard>
+        </XStack>
+      )}
+
+      <ChatScrollView
+        ref={scrollViewRef}
+        dark={isDark}
         flex={1}
-      >
-        <ToastNotification 
-          visible={toastVisible}
-          title={toastTitle}
-          message={toastMessage}
-          bgColor={toastBgColor}
-        />
-
-        {showShowcase && (
-          <XStack padding="$2" space="$2">
-            <Button
-              size="$2"
-              borderRadius="$8"
-              backgroundColor={isDark ? '$green9' : '$green2'}
-              elevation={isDark ? 0 : 1}
-              onPress={() => {
-                setShowShowcase(false);
-                setMessages((prev) => [
-                  ...prev,
-                  { id: Date.now().toString(), text: "You can set goals by chatting with me!", sender: 'bot', timestamp: new Date(), status: 'sent', type: 'regular' },
-                ]);
-              }}
-              icon={<Timer size={16} color={isDark ? '$white' : '$green9'} />}
-            >
-              <Text fontSize="$3" color={isDark ? '$white' : '$green7'}>Set Goals</Text>
-            </Button>
-            <Button
-              size="$2"
-              borderRadius="$8"
-              backgroundColor={isDark ? '$yellow9' : '$yellow2'}
-              elevation={isDark ? 0 : 1}
-              onPress={() => {
-                setShowShowcase(false);
-                setMessages((prev) => [
-                  ...prev,
-                  { id: Date.now().toString(), text: "You can set alerts for important events!", sender: 'bot', timestamp: new Date(), status: 'sent', type: 'regular' },
-                ]);
-              }}
-              icon={<Bell size={16} color={isDark ? '$black' : '$yellow9'} />}
-            >
-              <Text fontSize="$3" color={isDark ? '$black' : '$yellow9'}>Set Alerts</Text>
-            </Button>
-            <Button
-              size="$2"
-              borderRadius="$8"
-              backgroundColor={isDark ? '$gray9' : '$gray2'}
-              elevation={isDark ? 0 : 1}
-              onPress={() => {
-                setShowShowcase(false);
-                handleUpload();
-              }}
-              icon={<File size={16} color={isDark ? '$white' : '$gray9'} />}
-            >
-              <Text fontSize="$3" color={isDark ? '$white' : '$gray9'}>Upload Docs</Text>
-            </Button>
-          </XStack>
-        )}
-
-        {showDisclaimer && (
-          <XStack padding="$2">
-            <Card
-              backgroundColor={theme.name === 'dark' ? '$gray3Dark' : '$gray1Light'}
-              padding="$2"
-              borderRadius="$4"
-              flex={1}
-              elevation={theme.name === 'light' ? 1 : 0}
-            >
-              <XStack space="$1" alignItems="center">
-                <Info size={14} color="$red9" />
-                <Text color={theme.name === 'dark' ? '$gray12' : '$gray11'} fontSize="$2">
-                  The information provided is not financial advice.
-                  <Button size="$2" chromeless color="$red9" onPress={() => setShowDisclaimer(false)}>
-                    Dismiss
-                  </Button>
-                </Text>
-              </XStack>
-            </Card>
-          </XStack>
-        )}
-
-        <ScrollView
-          ref={scrollViewRef}
-          flex={1}
-          contentContainerStyle={{ paddingVertical: '$0', gap: '$1' }}
-          showsVerticalScrollIndicator={false}
-          backgroundColor={isDark ? '$gray1Dark' : '$white'}
-        >
-          {messageList()}
-        </ScrollView>
-
-        {!isInputFocused && (
-          <QuickPrompts 
-            prompts={quickPrompts}
-            onPromptClick={handlePromptClick}
-            isDark={isDark}
+        contentContainerStyle={{ paddingVertical: '$0', gap: '$1' }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={isDark ? '$gray12' : '$gray11'}
           />
-        )}
+        }
+      >
+        {messageList()}
+      </ChatScrollView>
 
-        <ChatInput
-          input={input}
-          isTyping={isTyping}
-          isVoiceModeActive={isVoiceModeActive}
-          onInputChange={setInput}
-          onSend={handleSend}
-          onToggleVoiceMode={toggleVoiceMode}
-          onCaptureImage={handleCaptureImage}
-          onUpload={handleUpload}
-          isDark={isDark}
-          inputRef={inputRef}
-          isInputFocused={isInputFocused}
-          setIsInputFocused={setIsInputFocused}
-        />
-
-        <GoalEditorSheet
-          goal={editingGoal}
-          onClose={() => setEditingGoal(null)}
-          onSave={handleConfirmGoal}
+      {!isInputFocused && (
+        <QuickPrompts 
+          prompts={quickPrompts}
+          onPromptClick={handlePromptClick}
           isDark={isDark}
         />
+      )}
 
-        <AlertEditorSheet
-          alert={editingAlert}
-          onClose={() => setEditingAlert(null)}
-          onSave={handleConfirmAlert}
-          isDark={isDark}
-        />
-      </YStack>
-    </View>
+      <ChatInput
+        input={input}
+        isTyping={isTyping}
+        isVoiceModeActive={isVoiceModeActive}
+        onInputChange={setInput}
+        onSend={handleSend}
+        onToggleVoiceMode={toggleVoiceMode}
+        onCaptureImage={handleCaptureImage}
+        onUpload={handleUpload}
+        isDark={isDark}
+        inputRef={inputRef}
+        isInputFocused={isInputFocused}
+        setIsInputFocused={setIsInputFocused}
+      />
+
+      <GoalEditorSheet
+        goal={editingGoal}
+        onClose={() => setEditingGoal(null)}
+        onSave={handleConfirmGoal}
+        isDark={isDark}
+      />
+
+      <AlertEditorSheet
+        alert={editingAlert}
+        onClose={() => setEditingAlert(null)}
+        onSave={handleConfirmAlert}
+        isDark={isDark}
+      />
+    </ChatContainer>
   );
 }, (prevProps, nextProps) => {
   return (

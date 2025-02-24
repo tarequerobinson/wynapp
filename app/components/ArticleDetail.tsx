@@ -1,5 +1,5 @@
 import { useCallback, useState, useEffect } from 'react';
-import { YStack, XStack, Text, Paragraph, ScrollView, Button } from 'tamagui';
+import { YStack, XStack, Text, Paragraph, ScrollView, Button, useTheme } from 'tamagui';
 import { ArrowLeft, Bookmark, BookmarkCheck, Share2 } from '@tamagui/lucide-icons';
 import { Animated, Dimensions } from 'react-native';
 import { format } from 'date-fns';
@@ -15,13 +15,11 @@ interface ArticleDetailProps {
 }
 
 export function ArticleDetail({ article, bookmarkedArticles, toggleBookmark, shareArticle, onClose }: ArticleDetailProps) {
+  const theme = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  console.log('ArticleDetail received article:', article);
-
   const handleBookmark = useCallback(() => {
-    console.log('Bookmark button pressed for article:', article.title);
     toggleBookmark(article.title);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch((error) =>
       console.error('Haptics error:', error)
@@ -29,12 +27,10 @@ export function ArticleDetail({ article, bookmarkedArticles, toggleBookmark, sha
   }, [article.title, toggleBookmark]);
 
   const handleShare = useCallback(() => {
-    console.log('Share button pressed for article:', article.title);
     shareArticle(article);
   }, [article, shareArticle]);
 
   useEffect(() => {
-    console.log('useEffect triggered - Image URL changed:', article.imageUrl);
     setImageError(false);
   }, [article.imageUrl]);
 
@@ -45,7 +41,6 @@ export function ArticleDetail({ article, bookmarkedArticles, toggleBookmark, sha
       animation="quick"
       enterStyle={{ opacity: 0, y: 20 }}
       exitStyle={{ opacity: 0, y: -20 }}
-      onLayout={() => console.log('ArticleDetail layout rendered')}
     >
       <XStack p="$4" ai="center" jc="space-between" borderBottomWidth={1} borderBottomColor="$borderColor">
         <Button
@@ -53,10 +48,7 @@ export function ArticleDetail({ article, bookmarkedArticles, toggleBookmark, sha
           size="$4"
           circular
           chromeless
-          onPress={() => {
-            console.log('Back button pressed');
-            onClose();
-          }}
+          onPress={onClose}
           hoverStyle={{ backgroundColor: '$backgroundHover' }}
           pressStyle={{ scale: 0.95 }}
           accessibilityLabel="Back to news list"
@@ -88,7 +80,6 @@ export function ArticleDetail({ article, bookmarkedArticles, toggleBookmark, sha
       <ScrollView
         flex={1}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
-        onContentSizeChange={(width, height) => console.log('ScrollView content size:', width, height)}
       >
         <YStack p="$5" space="$5" maxWidth={800} margin="auto">
           {isLoading ? (
@@ -101,20 +92,12 @@ export function ArticleDetail({ article, bookmarkedArticles, toggleBookmark, sha
                 <Animated.Image
                   source={{ uri: article.imageUrl }}
                   style={{
-                    width: Dimensions.get('window').width - 40, // Matches YStack padding
+                    width: Dimensions.get('window').width - 40,
                     height: 300,
                     borderRadius: 8,
-                    resizeMode: 'cover', // Explicitly set for clarity
+                    resizeMode: 'cover',
                   }}
-                  onLoad={() => console.log('Image loaded successfully:', article.imageUrl)}
-                  onError={(e) => {
-                    console.log('Image failed to load:', article.imageUrl, 'Error:', e.nativeEvent.error);
-                    setImageError(true);
-                  }}
-                  onLayout={(e) => {
-                    const { width, height } = e.nativeEvent.layout;
-                    console.log('Image layout rendered with dimensions:', width, height);
-                  }}
+                  onError={() => setImageError(true)}
                 />
               ) : (
                 article.imageUrl && (
@@ -128,7 +111,6 @@ export function ArticleDetail({ article, bookmarkedArticles, toggleBookmark, sha
                     <Text color="$gray8" fontSize="$4" fontWeight="600">
                       Image Unavailable
                     </Text>
-                    {console.log('Showing fallback - imageError:', imageError, 'imageUrl:', article.imageUrl)}
                   </YStack>
                 )
               )}

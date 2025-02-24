@@ -1,6 +1,5 @@
-import React from 'react';
-import { YStack, XStack, Input, Button, Text } from 'tamagui';
-import { Mic, Camera, Paperclip, Send, Info } from '@tamagui/lucide-icons';
+import { useTheme, YStack, XStack, Input, Button, Text } from 'tamagui';
+import { Mic, Camera, Paperclip, Send } from '@tamagui/lucide-icons';
 
 interface ChatInputProps {
   input: string;
@@ -11,7 +10,6 @@ interface ChatInputProps {
   onToggleVoiceMode: () => void;
   onCaptureImage: () => void;
   onUpload: () => void;
-  isDark: boolean;
   inputRef: React.RefObject<Input>;
   isInputFocused: boolean;
   setIsInputFocused: (focused: boolean) => void;
@@ -26,16 +24,18 @@ export const ChatInput = ({
   onToggleVoiceMode,
   onCaptureImage,
   onUpload,
-  isDark,
   inputRef,
   isInputFocused,
   setIsInputFocused,
 }: ChatInputProps) => {
+  const theme = useTheme();
+  const isDark = theme.name === 'dark';
+
   return (
     <YStack 
       borderTopWidth={1}
-      borderColor={isDark ? '$gray4Dark' : '$gray4Light'}
-      backgroundColor={isDark ? '$gray1Dark' : '$gray1Light'}
+      borderColor="$gray4"
+      backgroundColor="$background"
     >
       <XStack 
         alignItems="center" 
@@ -50,15 +50,15 @@ export const ChatInput = ({
           value={input}
           onChangeText={onInputChange}
           placeholder={isVoiceModeActive ? 'Tap the mic on your keyboard...' : 'Message...'}
-          backgroundColor={isDark ? '$gray2Dark' : 'white'}
+          backgroundColor={isDark ? '$gray2' : '$white'}
           borderWidth={1}
-          borderColor={isDark ? '$gray3Dark' : '$gray4Light'}
+          borderColor="$gray4"
           borderRadius="$4"
           paddingHorizontal="$3"
           paddingVertical="$2"
           disabled={isTyping}
-          color={isDark ? '$gray12Light' : '$gray12Dark'}
-          placeholderTextColor={isDark ? '$gray8Dark' : '$gray8Light'}
+          color="$color"
+          placeholderTextColor="$gray8"
           fontSize={16}
           onFocus={() => setIsInputFocused(true)}
           onBlur={() => setIsInputFocused(false)}
@@ -70,13 +70,13 @@ export const ChatInput = ({
           circular
           backgroundColor={isVoiceModeActive ? '$red9' : 'transparent'}
           borderWidth={1}
-          borderColor={isDark ? '$gray3Dark' : '$gray4Light'}
+          borderColor="$gray4"
           pressStyle={{ opacity: 0.7 }}
           onPress={onToggleVoiceMode}
           disabled={isTyping}
           icon={<Mic 
             size={18} 
-            color={isVoiceModeActive ? 'white' : isDark ? '$gray12Light' : '$gray12Dark'} 
+            color={isVoiceModeActive ? '$white' : '$gray10'} 
           />}
         />
 
@@ -85,13 +85,13 @@ export const ChatInput = ({
           circular
           backgroundColor="transparent"
           borderWidth={1}
-          borderColor={isDark ? '$gray3Dark' : '$gray4Light'}
+          borderColor="$gray4"
           pressStyle={{ opacity: 0.7 }}
           onPress={onCaptureImage}
           disabled={isTyping}
           icon={<Camera 
             size={18} 
-            color={isDark ? '$gray12Light' : '$gray12Dark'} 
+            color="$gray10" 
           />}
         />
 
@@ -100,13 +100,13 @@ export const ChatInput = ({
           circular
           backgroundColor="transparent"
           borderWidth={1}
-          borderColor={isDark ? '$gray3Dark' : '$gray4Light'}
+          borderColor="$gray4"
           pressStyle={{ opacity: 0.7 }}
           onPress={onUpload}
           disabled={isTyping}
           icon={<Paperclip 
             size={18} 
-            color={isDark ? '$gray12Light' : '$gray12Dark'} 
+            color="$gray10" 
           />}
         />
 
@@ -115,13 +115,13 @@ export const ChatInput = ({
           circular
           backgroundColor={input.trim() && !isTyping ? '$blue9' : 'transparent'}
           borderWidth={1}
-          borderColor={isDark ? '$gray3Dark' : '$gray4Light'}
+          borderColor="$gray4"
           pressStyle={{ opacity: 0.7 }}
           onPress={onSend}
           disabled={!input.trim() || isTyping}
           icon={<Send 
             size={18} 
-            color={input.trim() && !isTyping ? 'white' : isDark ? '$gray8Dark' : '$gray8Light'} 
+            color={input.trim() && !isTyping ? '$white' : '$gray8'} 
           />}
         />
       </XStack>
@@ -129,7 +129,7 @@ export const ChatInput = ({
       {isVoiceModeActive && (
         <Text
           size="$2"
-          color={isDark ? '$gray9Dark' : '$gray9Light'}
+          color="$gray9"
           textAlign="center"
           paddingBottom="$2"
         >

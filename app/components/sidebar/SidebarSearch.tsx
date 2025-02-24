@@ -4,10 +4,12 @@ import { Filter, Search } from '@tamagui/lucide-icons';
 interface SidebarSearchProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  theme: ReturnType<typeof useTheme>;
 }
 
-export function SidebarSearch({ searchQuery, setSearchQuery, theme }: SidebarSearchProps) {
+export function SidebarSearch({ searchQuery, setSearchQuery }: SidebarSearchProps) {
+  const theme = useTheme();
+  const isDark = theme.name === 'dark';
+
   return (
     <YStack space="$2">
       <XStack alignItems="center" space="$2">
@@ -18,14 +20,18 @@ export function SidebarSearch({ searchQuery, setSearchQuery, theme }: SidebarSea
           onChangeText={setSearchQuery}
           borderRadius="$4"
           padding="$2"
-          backgroundColor="$gray3"
-          borderWidth={0}
+          backgroundColor={isDark ? '$gray3' : '$gray2'}
+          borderWidth={1}
+          borderColor="$gray4"
+          color="$color"
           icon={<Search size={20} color="$gray9" />}
         />
         <Button 
           icon={<Filter size={20} />}
-          backgroundColor="$gray3"
+          backgroundColor={isDark ? '$gray3' : '$gray2'}
           circular
+          borderWidth={1}
+          borderColor="$gray4"
         />
       </XStack>
       <XStack flexWrap="wrap" gap="$2">
@@ -35,7 +41,7 @@ export function SidebarSearch({ searchQuery, setSearchQuery, theme }: SidebarSea
             size="$2"
             backgroundColor="$gray4"
             borderRadius="$4"
-            color="$gray11"
+            color="$gray10"
             pressStyle={{ backgroundColor: '$blue5' }}
           >
             {filter}

@@ -1,15 +1,16 @@
 import { useState, useRef } from 'react';
-import { ScrollView, XStack, Button, Text, YStack } from 'tamagui';
+import { ScrollView, XStack, Button, Text, YStack, useTheme } from 'tamagui';
 import { ChevronLeft, ChevronRight } from '@tamagui/lucide-icons';
 import { QuickPrompt } from './types';
 
 interface QuickPromptsProps {
   prompts: QuickPrompt[];
   onPromptClick: (prompt: QuickPrompt) => void;
-  isDark: boolean;
 }
 
-export const QuickPrompts = ({ prompts, onPromptClick, isDark }: QuickPromptsProps) => {
+export const QuickPrompts = ({ prompts, onPromptClick }: QuickPromptsProps) => {
+  const theme = useTheme();
+  const isDark = theme.name === 'dark';
   const [scrollPosition, setScrollPosition] = useState(0);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
@@ -28,14 +29,14 @@ export const QuickPrompts = ({ prompts, onPromptClick, isDark }: QuickPromptsPro
     const scrollAmount = direction === 'left' ? -200 : 200;
     scrollViewRef.current?.scrollTo({
       x: scrollPosition + scrollAmount,
-      animated: true
+      animated: true,
     });
   };
 
   return (
     <YStack 
       width="100%"
-      backgroundColor={isDark ? '$gray1Dark' : '$gray1Light'}
+      backgroundColor="$background"
     >
       <XStack position="relative" alignItems="center">
         {showLeftArrow && (
@@ -46,10 +47,10 @@ export const QuickPrompts = ({ prompts, onPromptClick, isDark }: QuickPromptsPro
             size="$2"
             circular
             onPress={() => scrollTo('left')}
-            backgroundColor={isDark ? '$gray4Dark' : '$gray3Light'}
-            hoverStyle={{ backgroundColor: isDark ? '$gray5Dark' : '$gray4Light' }}
+            backgroundColor="$gray4"
+            hoverStyle={{ backgroundColor: "$gray5" }}
           >
-            <ChevronLeft size={16} color={isDark ? '$gray10' : '$gray11'} />
+            <ChevronLeft size={16} color="$gray10" />
           </Button>
         )}
         
@@ -68,21 +69,20 @@ export const QuickPrompts = ({ prompts, onPromptClick, isDark }: QuickPromptsPro
                 key={index}
                 size="$3"
                 borderRadius="$4"
-                backgroundColor={isDark ? '$gray3Dark' : '$gray2Light'}
+                backgroundColor={isDark ? '$gray3' : '$gray2'}
                 elevation={isDark ? 0 : 1}
                 onPress={() => onPromptClick(prompt)}
-                animation="quick"
-                hoverStyle={{ backgroundColor: isDark ? '$gray4Dark' : '$gray3Light' }}
+                hoverStyle={{ backgroundColor: isDark ? '$gray4' : '$gray3' }}
                 pressStyle={{ scale: 0.95 }}
               >
                 <XStack space="$1" alignItems="center">
-                  <prompt.icon size={16} color={isDark ? '$gray12' : '$gray11'} />
+                  <prompt.icon size={16} color="$color" />
                   <Text
                     fontSize="$3"
-                    color={isDark ? '$gray12' : '$gray11'}
+                    color="$color"
                     numberOfLines={1}
                     ellipsizeMode="tail"
-                    maxWidth={200} // Prevents overly long prompts
+                    maxWidth={200}
                   >
                     {prompt.text}
                   </Text>
@@ -100,13 +100,15 @@ export const QuickPrompts = ({ prompts, onPromptClick, isDark }: QuickPromptsPro
             size="$2"
             circular
             onPress={() => scrollTo('right')}
-            backgroundColor={isDark ? '$gray4Dark' : '$gray3Light'}
-            hoverStyle={{ backgroundColor: isDark ? '$gray5Dark' : '$gray4Light' }}
+            backgroundColor="$gray4"
+            hoverStyle={{ backgroundColor: "$gray5" }}
           >
-            <ChevronRight size={16} color={isDark ? '$gray10' : '$gray11'} />
+            <ChevronRight size={16} color="$gray10" />
           </Button>
         )}
       </XStack>
     </YStack>
   );
 };
+
+export default QuickPrompts;

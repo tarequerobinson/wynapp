@@ -1,21 +1,24 @@
-import { Button, useTheme } from 'tamagui';
+import { Button, Text, useTheme } from 'tamagui';
 import { Plus } from '@tamagui/lucide-icons';
 
 interface NewChatButtonProps {
   onPress: () => void;
-  theme: ReturnType<typeof useTheme>;
 }
 
-export function NewChatButton({ onPress, theme }: NewChatButtonProps) {
+export function NewChatButton({ onPress }: NewChatButtonProps) {
+  const theme = useTheme();
+
   return (
     <Button
       icon={<Plus size={20} />}
-      backgroundColor="$blue10"
-      color="white"
-      hoverStyle={{ backgroundColor: '$blue11' }}
+      backgroundColor="$blue9"
+      color="$white"
+      hoverStyle={{ backgroundColor: '$blue10' }}
       onPress={onPress}
     >
-      New Chat
+      <Text color="$white" fontSize="$4">
+        New Chat
+      </Text>
     </Button>
   );
 }

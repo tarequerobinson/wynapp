@@ -66,7 +66,6 @@ export function NewsCard({ item, onPress, bookmarkedArticles, toggleBookmark, sh
         onPress={handleCardPress}
       >
         <XStack minHeight={140} flex={1}>
-          {/* Left Column: Image or Placeholder */}
           <YStack 
             width={120} 
             backgroundColor={item.imageUrl ? undefined : '$gray3'}
@@ -96,8 +95,6 @@ export function NewsCard({ item, onPress, bookmarkedArticles, toggleBookmark, sh
               </Text>
             )}
           </YStack>
-
-          {/* Right Column: Content */}
           <YStack 
             flex={1} 
             padding="$3" 
@@ -105,7 +102,6 @@ export function NewsCard({ item, onPress, bookmarkedArticles, toggleBookmark, sh
             animation="lazy"
             enterStyle={{ x: 10, opacity: 0 }}
           >
-            {/* Source and Date */}
             <XStack justifyContent="space-between" alignItems="center">
               <YStack
                 backgroundColor={sourceBackgroundColor}
@@ -128,8 +124,6 @@ export function NewsCard({ item, onPress, bookmarkedArticles, toggleBookmark, sh
                 </Text>
               </XStack>
             </XStack>
-
-            {/* Title */}
             <Text
               fontSize="$5"
               fontWeight="700"
@@ -140,8 +134,6 @@ export function NewsCard({ item, onPress, bookmarkedArticles, toggleBookmark, sh
             >
               {item.title}
             </Text>
-
-            {/* Description */}
             {item.description && (
               <Text
                 fontSize="$3"
@@ -153,8 +145,6 @@ export function NewsCard({ item, onPress, bookmarkedArticles, toggleBookmark, sh
                 {item.description}
               </Text>
             )}
-
-            {/* Footer: Author and Actions */}
             <XStack alignItems="center" justifyContent="space-between" marginTop="$1">
               {item.creator && (
                 <XStack alignItems="center" space="$1" flex={1}>

@@ -1,4 +1,4 @@
-import { Button, ScrollView, Stack, Text, useTheme, YStack, XStack, Input } from 'tamagui';
+import { Button, ScrollView, Stack, Text, useTheme, YStack, XStack } from 'tamagui';
 import { 
   ChevronLeft, 
   Filter, 
@@ -7,7 +7,7 @@ import {
   Search 
 } from '@tamagui/lucide-icons';
 import { useState } from 'react';
-import type { ChatHistoryItem } from './types';
+import type { ChatHistoryItem } from '@/components/chat/types';
 import { RecentActivity } from './RecentActivity';
 import { ChatHistoryList } from './ChatHistoryList';
 import { NewChatButton } from './NewChatButton';
@@ -30,6 +30,7 @@ export default function Sidebar({
   chatHistory,
 }: SidebarProps) {
   const theme = useTheme();
+  const isDark = theme.name === 'dark';
 
   const filteredChats = chatHistory.filter(chat => 
     chat.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -42,44 +43,34 @@ export default function Sidebar({
       top={0}
       bottom={0}
       width={300}
-      backgroundColor={theme.name === 'dark' ? '$gray2Dark' : '$gray1Light'}
+      backgroundColor="$background"
       borderRightWidth={1}
-      borderRightColor={theme.borderColor?.val ?? '#e0e0e0'}
+      borderRightColor="$gray4"
       animation="quick"
       padding="$4"
     >
       <YStack flex={1} space="$4">
-        {/* Header with Collapse Button */}
         <SidebarHeader 
           title="Chat History" 
-          onClose={() => setSidebarOpen(false)} 
-          theme={theme} 
+          onClose={() => setSidebarOpen(false)}
         />
 
-        {/* Search Bar and Filters */}
         <SidebarSearch 
           searchQuery={searchQuery} 
-          setSearchQuery={setSearchQuery} 
-          theme={theme} 
+          setSearchQuery={setSearchQuery}
         />
 
-        {/* New Chat Button */}
         <NewChatButton 
           onPress={() => {
-            // Add logic for new chat here
             setSidebarOpen(false);
           }} 
-          theme={theme} 
         />
 
-        {/* Chat History List */}
         <ChatHistoryList 
-          filteredChats={filteredChats} 
-          theme={theme} 
+          filteredChats={filteredChats}
         />
 
-        {/* Recent Activity */}
-        <RecentActivity theme={theme} />
+        <RecentActivity />
       </YStack>
     </Stack>
   );

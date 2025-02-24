@@ -1,13 +1,14 @@
 import { Button, Text, XStack, YStack, useTheme } from 'tamagui';
 
 interface RecentActivityProps {
-  theme: ReturnType<typeof useTheme>;
 }
 
-export function RecentActivity({ theme }: RecentActivityProps) {
+export function RecentActivity() {
+  const theme = useTheme();
+
   return (
     <YStack marginTop="$4" space="$2">
-      <Text fontSize="$4" fontWeight="600" color="$gray11">Recent Activity</Text>
+      <Text fontSize="$4" fontWeight="600" color="$gray10">Recent Activity</Text>
       <XStack flexWrap="wrap" gap="$2">
         {['AI', 'Investments', 'Trading', 'Reports'].map((tag) => (
           <Button

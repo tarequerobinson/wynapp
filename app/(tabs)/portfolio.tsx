@@ -10,7 +10,6 @@ import { Link } from 'expo-router';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CONTAINER_PADDING = '$4';
 
-// Styled Asset Card with Color Variants
 const AssetCard = styled(Card, {
   name: 'AssetCard',
   p: '$4',
@@ -37,7 +36,6 @@ const AssetCard = styled(Card, {
   } as const,
 });
 
-// Styled Net Worth Card
 const NetWorthCard = styled(Card, {
   name: 'NetWorthCard',
   p: '$5',
@@ -53,18 +51,27 @@ const NetWorthCard = styled(Card, {
   } as const,
 });
 
+const SegmentedControlContainer = styled(XStack, {
+  name: 'SegmentedControlContainer',
+  borderRadius: '$10',
+  p: '$1',
+  jc: 'center',
+  width: '100%',
+  maxWidth: 400,
+  alignSelf: 'center',
+  variants: {
+    dark: {
+      true: { backgroundColor: '$gray3' },
+      false: { backgroundColor: '$gray2' },
+    },
+  } as const,
+});
+
 const SegmentedControl = ({ options, selectedIndex, onSelect }) => {
   const theme = useTheme();
+  const isDark = theme.name === 'dark';
   return (
-    <XStack 
-      bg={theme.name === 'dark' ? '$gray3' : '$gray2'} 
-      borderRadius="$10" 
-      p="$1" 
-      jc="center"
-      width="100%"
-      maxWidth={400}
-      alignSelf="center"
-    >
+    <SegmentedControlContainer dark={isDark}>
       {options.map((option, index) => (
         <Button
           key={index}
@@ -81,14 +88,14 @@ const SegmentedControl = ({ options, selectedIndex, onSelect }) => {
           <Text
             fontSize="$4"
             fontWeight={selectedIndex === index ? '600' : '500'}
-            color={selectedIndex === index ? '$white' : theme.name === 'dark' ? '$gray10' : '$gray9'}
+            color={selectedIndex === index ? '$white' : isDark ? '$gray10' : '$gray9'}
             textAlign="center"
           >
             {option}
           </Text>
         </Button>
       ))}
-    </XStack>
+    </SegmentedControlContainer>
   );
 };
 
@@ -121,14 +128,14 @@ export default function DashboardScreen() {
             <YStack gap="$4" ai="center">
               <XStack space="$2" ai="center">
                 <Wallet size="$3" color={isDark ? '$yellow5' : '$yellow9'} />
-                <Text fontSize="$5" color={isDark ? '$gray11' : '$gray10'} fontWeight="600">
+                <Text fontSize="$5" color="$gray10" fontWeight="600">
                   Net Worth
                 </Text>
               </XStack>
               <Text 
                 fontSize="$10" 
                 fontWeight="800" 
-                color={isDark ? '$white' : '$gray12'}
+                color="$color"
                 adjustsFontSizeToFit
                 numberOfLines={1}
               >
@@ -139,7 +146,7 @@ export default function DashboardScreen() {
                   <Text fontSize="$4" color="$blue10" fontWeight="600">
                     Top {100 - (financialStanding?.jamaicaPercentile || 0)}%
                   </Text>
-                  <Text fontSize="$3" color={isDark ? '$gray9' : '$gray10'}>
+                  <Text fontSize="$3" color="$gray10">
                     Jamaica
                   </Text>
                 </YStack>
@@ -147,7 +154,7 @@ export default function DashboardScreen() {
                   <Text fontSize="$4" color="$blue10" fontWeight="600">
                     Top {100 - (financialStanding?.worldPercentile || 0)}%
                   </Text>
-                  <Text fontSize="$3" color={isDark ? '$gray9' : '$gray10'}>
+                  <Text fontSize="$3" color="$gray10">
                     Global
                   </Text>
                 </YStack>
@@ -155,41 +162,32 @@ export default function DashboardScreen() {
             </YStack>
           </NetWorthCard>
           <YStack gap="$4">
-            <AssetCard
-              type="realEstate"
-              dark={isDark}
-            >
+            <AssetCard type="realEstate" dark={isDark}>
               <XStack ai="center" gap="$4">
                 <Home size="$3" color="$blue11" />
                 <YStack flex={1}>
-                  <Text fontSize="$5" color={isDark ? '$gray11' : '$gray10'} fontWeight="600">Real Estate</Text>
-                  <Text fontSize="$7" fontWeight="700" color={isDark ? '$white' : '$gray12'}>${clientPortfolio.realEstateValue.toLocaleString()}</Text>
+                  <Text fontSize="$5" color="$gray10" fontWeight="600">Real Estate</Text>
+                  <Text fontSize="$7" fontWeight="700" color="$color">${clientPortfolio.realEstateValue.toLocaleString()}</Text>
                   <Text fontSize="$4" color="$green10">+2.5%</Text>
                 </YStack>
               </XStack>
             </AssetCard>
-            <AssetCard
-              type="cash"
-              dark={isDark}
-            >
+            <AssetCard type="cash" dark={isDark}>
               <XStack ai="center" gap="$4">
                 <PiggyBank size="$3" color="$purple11" />
                 <YStack flex={1}>
-                  <Text fontSize="$5" color={isDark ? '$gray11' : '$gray10'} fontWeight="600">Cash</Text>
-                  <Text fontSize="$7" fontWeight="700" color={isDark ? '$white' : '$gray12'}>${clientPortfolio.cashValue.toLocaleString()}</Text>
+                  <Text fontSize="$5" color="$gray10" fontWeight="600">Cash</Text>
+                  <Text fontSize="$7" fontWeight="700" color="$color">${clientPortfolio.cashValue.toLocaleString()}</Text>
                   <Text fontSize="$4" color="$green10">+0.5%</Text>
                 </YStack>
               </XStack>
             </AssetCard>
-            <AssetCard
-              type="liabilities"
-              dark={isDark}
-            >
+            <AssetCard type="liabilities" dark={isDark}>
               <XStack ai="center" gap="$4">
                 <CreditCard size="$3" color="$red11" />
                 <YStack flex={1}>
-                  <Text fontSize="$5" color={isDark ? '$gray11' : '$gray10'} fontWeight="600">Liabilities</Text>
-                  <Text fontSize="$7" fontWeight="700" color={isDark ? '$white' : '$gray12'}>-${Math.abs(clientPortfolio.liabilities).toLocaleString()}</Text>
+                  <Text fontSize="$5" color="$gray10" fontWeight="600">Liabilities</Text>
+                  <Text fontSize="$7" fontWeight="700" color="$color">-${Math.abs(clientPortfolio.liabilities).toLocaleString()}</Text>
                   <Text fontSize="$4" color="$red10">-0.8%</Text>
                 </YStack>
               </XStack>
@@ -202,54 +200,42 @@ export default function DashboardScreen() {
       title: 'Assets',
       content: (
         <YStack gap="$5">
-          <AssetCard
-            type="realEstate"
-            dark={isDark}
-          >
+          <AssetCard type="realEstate" dark={isDark}>
             <XStack ai="center" gap="$4">
               <Building size="$3" color="$blue11" />
               <YStack flex={1}>
-                <Text fontSize="$5" color={isDark ? '$gray11' : '$gray10'} fontWeight="600">Real Estate</Text>
-                <Text fontSize="$7" fontWeight="700" color={isDark ? '$white' : '$gray12'}>${clientPortfolio.realEstateValue.toLocaleString()}</Text>
+                <Text fontSize="$5" color="$gray10" fontWeight="600">Real Estate</Text>
+                <Text fontSize="$7" fontWeight="700" color="$color">${clientPortfolio.realEstateValue.toLocaleString()}</Text>
                 <Text fontSize="$4" color="$green10">+2.5%</Text>
               </YStack>
             </XStack>
           </AssetCard>
-          <AssetCard
-            type="stocks"
-            dark={isDark}
-          >
+          <AssetCard type="stocks" dark={isDark}>
             <XStack ai="center" gap="$4">
               <ChartBar size="$3" color="$green11" />
               <YStack flex={1}>
-                <Text fontSize="$5" color={isDark ? '$gray11' : '$gray10'} fontWeight="600">Stocks</Text>
-                <Text fontSize="$7" fontWeight="700" color={isDark ? '$white' : '$gray12'}>${clientPortfolio.stockValue.toLocaleString()}</Text>
+                <Text fontSize="$5" color="$gray10" fontWeight="600">Stocks</Text>
+                <Text fontSize="$7" fontWeight="700" color="$color">${clientPortfolio.stockValue.toLocaleString()}</Text>
                 <Text fontSize="$4" color="$gray9">0%</Text>
               </YStack>
             </XStack>
           </AssetCard>
-          <AssetCard
-            type="cash"
-            dark={isDark}
-          >
+          <AssetCard type="cash" dark={isDark}>
             <XStack ai="center" gap="$4">
               <Coins size="$3" color="$purple11" />
               <YStack flex={1}>
-                <Text fontSize="$5" color={isDark ? '$gray11' : '$gray10'} fontWeight="600">Cash</Text>
-                <Text fontSize="$7" fontWeight="700" color={isDark ? '$white' : '$gray12'}>${clientPortfolio.cashValue.toLocaleString()}</Text>
+                <Text fontSize="$5" color="$gray10" fontWeight="600">Cash</Text>
+                <Text fontSize="$7" fontWeight="700" color="$color">${clientPortfolio.cashValue.toLocaleString()}</Text>
                 <Text fontSize="$4" color="$green10">+0.5%</Text>
               </YStack>
             </XStack>
           </AssetCard>
-          <AssetCard
-            type="other"
-            dark={isDark}
-          >
+          <AssetCard type="other" dark={isDark}>
             <XStack ai="center" gap="$4">
               <Briefcase size="$3" color="$gray11" />
               <YStack flex={1}>
-                <Text fontSize="$5" color={isDark ? '$gray11' : '$gray10'} fontWeight="600">Other Assets</Text>
-                <Text fontSize="$4" color={isDark ? '$gray9' : '$gray10'}>Coming Soon</Text>
+                <Text fontSize="$5" color="$gray10" fontWeight="600">Other Assets</Text>
+                <Text fontSize="$4" color="$gray10">Coming Soon</Text>
               </YStack>
             </XStack>
           </AssetCard>
@@ -271,8 +257,8 @@ export default function DashboardScreen() {
             <XStack ai="center" gap="$4">
               <TrendingUp size="$3" color="$orange11" />
               <YStack flex={1}>
-                <Text fontSize="$5" color={isDark ? '$gray11' : '$gray10'} fontWeight="600">Market Trends</Text>
-                <Text fontSize="$4" color={isDark ? '$gray9' : '$gray10'}>Coming Soon</Text>
+                <Text fontSize="$5" color="$gray10" fontWeight="600">Market Trends</Text>
+                <Text fontSize="$4" color="$gray10">Coming Soon</Text>
               </YStack>
             </XStack>
           </Card>
@@ -287,8 +273,8 @@ export default function DashboardScreen() {
             <XStack ai="center" gap="$4">
               <Users size="$3" color="$purple11" />
               <YStack flex={1}>
-                <Text fontSize="$5" color={isDark ? '$gray11' : '$gray10'} fontWeight="600">Peer Comparison</Text>
-                <Text fontSize="$4" color={isDark ? '$gray9' : '$gray10'}>Coming Soon</Text>
+                <Text fontSize="$5" color="$gray10" fontWeight="600">Peer Comparison</Text>
+                <Text fontSize="$4" color="$gray10">Coming Soon</Text>
               </YStack>
             </XStack>
           </Card>
@@ -298,7 +284,7 @@ export default function DashboardScreen() {
   ];
 
   return (
-    <YStack f={1} bg={isDark ? '$gray1Dark' : '$background'}>
+    <YStack f={1} bg="$background">
       <YStack gap="$5" p={CONTAINER_PADDING} f={1}>
         <SegmentedControl
           options={pages.map(p => p.title)}
@@ -313,7 +299,7 @@ export default function DashboardScreen() {
           <AnimatePresence>
             {pages.map((page, index) => {
               const isEntering = currentPage === index;
-              const isForward = currentPage > (currentPage - 1); // Simplified for sequential navigation
+              const isForward = currentPage > (currentPage - 1);
               return (
                 <YStack
                   key={index}

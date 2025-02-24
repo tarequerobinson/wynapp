@@ -2,25 +2,73 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { RefreshControl, Animated, ScrollView as RNScrollView } from 'react-native';
 import { Accordion, Square, Button, XStack, YStack, Text, Input, ScrollView, Spinner, H4, Paragraph, styled, useTheme } from 'tamagui';
 import {
-  Search, Newspaper, Clock, User, BarChart, Volume2, VolumeX, Share2, Bookmark, BookmarkCheck, Filter, ChevronDown, RefreshCw
+  Search, Newspaper, BarChart, Volume2, VolumeX, Share2, Bookmark, Filter, ChevronDown, RefreshCw
 } from '@tamagui/lucide-icons';
 import { format } from 'date-fns';
 import { newsApi, NewsItem } from '@/api/newsApi';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
 import { Share } from 'react-native';
-import { useColorScheme } from 'react-native';
-import { ArticleDetail } from '../components/ArticleDetail';
 import { NewsCard } from '@/components/NewsCard';
+import { ArticleDetail } from '../components/ArticleDetail';
 
-// Styled Components and Constants
+// Styled Components with Dark Mode Variants
 const ITEMS_PER_PAGE = 10;
 const AnimatedYStack = Animated.createAnimatedComponent(YStack);
-const StyledScrollView = styled(ScrollView, { name: 'StyledScrollView', backgroundColor: '$backgroundStrong' });
-const NewsContainer = styled(YStack, { name: 'NewsContainer', flex: 1, backgroundColor: '$backgroundStrong', paddingTop: 0 });
-const TopBar = styled(XStack, { name: 'TopBar', height: 56, paddingHorizontal: '$4', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '$backgroundTransparent' });
-const StyledAccordion = styled(Accordion, { name: 'StyledAccordion', backgroundColor: '$blue2', borderRadius: '$6', overflow: 'hidden' });
-const SourceButton = styled(Button, { name: 'SourceButton', borderRadius: '$6', pressStyle: { opacity: 0.8, scale: 0.98 } });
+
+const NewsContainer = styled(YStack, {
+  name: 'NewsContainer',
+  flex: 1,
+  backgroundColor: '$background',
+  paddingTop: 0,
+  variants: {
+    dark: {
+      true: { backgroundColor: '$gray1Dark' },
+    },
+  } as const,
+});
+
+const StyledScrollView = styled(ScrollView, {
+  name: 'StyledScrollView',
+  backgroundColor: '$background',
+  variants: {
+    dark: {
+      true: { backgroundColor: '$gray1Dark' },
+    },
+  } as const,
+});
+
+const TopBar = styled(XStack, {
+  name: 'TopBar',
+  height: 56,
+  paddingHorizontal: '$4',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  backgroundColor: '$background',
+  variants: {
+    dark: {
+      true: { backgroundColor: '$gray1Dark' },
+    },
+  } as const,
+});
+
+const StyledAccordion = styled(Accordion, {
+  name: 'StyledAccordion',
+  backgroundColor: '$blue2',
+  borderRadius: '$6',
+  overflow: 'hidden',
+  variants: {
+    dark: {
+      true: { backgroundColor: '$blue9' },
+    },
+  } as const,
+});
+
+const SourceButton = styled(Button, {
+  name: 'SourceButton',
+  borderRadius: '$6',
+  pressStyle: { opacity: 0.8, scale: 0.98 },
+});
 
 const debounce = (func, wait) => {
   let timeout;
@@ -31,6 +79,8 @@ const debounce = (func, wait) => {
 };
 
 export default function NewsAggregator() {
+  const theme = useTheme();
+  const isDark = theme.name === 'dark'; // Sync with Tamagui’s theme state
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,8 +90,8 @@ export default function NewsAggregator() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [visibleItems, setVisibleItems] = useState(ITEMS_PER_PAGE); // Number of items to display
-  const [isLoadingMore, setIsLoadingMore] = useState(false); // Loading more items
+  const [visibleItems, setVisibleItems] = useState(ITEMS_PER_PAGE);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [bookmarkedArticles, setBookmarkedArticles] = useState<Set<string>>(new Set());
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -52,10 +102,7 @@ export default function NewsAggregator() {
   const [fadeAnim] = useState(new Animated.Value(0));
   const filterFadeAnim = useRef(new Animated.Value(1)).current;
   const scrollViewRef = useRef<RNScrollView>(null);
-  const systemColorScheme = useColorScheme();
-  const isDark = systemColorScheme === 'dark';
 
-  // Fetch initial news
   const fetchNews = useCallback(async () => {
     try {
       setLoading(true);
@@ -63,7 +110,7 @@ export default function NewsAggregator() {
       Animated.timing(fadeAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start();
       const fetchedNews = await newsApi.fetchNews();
       setNews(fetchedNews);
-      setVisibleItems(ITEMS_PER_PAGE); // Reset visible items on refresh
+      setVisibleItems(ITEMS_PER_PAGE);
       Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch news');
@@ -74,7 +121,6 @@ export default function NewsAggregator() {
     }
   }, [fadeAnim]);
 
-  // Fetch summary
   const fetchSummary = useCallback(async () => {
     setSummaryLoading(true);
     setSummaryError(null);
@@ -98,7 +144,6 @@ export default function NewsAggregator() {
   useEffect(() => { fetchNews(); }, [fetchNews]);
   useEffect(() => { fetchSummary(); }, [fetchSummary, filteredAndSortedNews]);
 
-  // Refresh handler
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -106,7 +151,6 @@ export default function NewsAggregator() {
     fetchSummary();
   }, [fetchNews, fetchSummary]);
 
-  // Bookmark handler
   const toggleBookmark = useCallback((articleId: string) => {
     setBookmarkedArticles((prev) => {
       const newBookmarks = new Set(prev);
@@ -121,7 +165,6 @@ export default function NewsAggregator() {
     });
   }, []);
 
-  // Share handler
   const shareArticle = useCallback(async (article: NewsItem) => {
     try {
       await Share.share({
@@ -134,7 +177,6 @@ export default function NewsAggregator() {
     }
   }, []);
 
-  // Text-to-speech handler
   const handleTextToSpeech = useCallback(() => {
     if (isPlaying) {
       Speech.stop();
@@ -153,7 +195,6 @@ export default function NewsAggregator() {
     }
   }, [isPlaying, summary]);
 
-  // Filter handler
   const handleFilter = useCallback(
     debounce((newSortOrder) => {
       setIsFiltering(true);
@@ -163,14 +204,13 @@ export default function NewsAggregator() {
         useNativeDriver: true,
       }).start(() => {
         setSortOrder(newSortOrder);
-        setVisibleItems(ITEMS_PER_PAGE); // Reset visible items on filter change
+        setVisibleItems(ITEMS_PER_PAGE);
         Animated.timing(filterFadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start(() => setIsFiltering(false));
       });
     }, 200),
     [filterFadeAnim]
   );
 
-  // Filter and sort news
   const filteredAndSortedNews = useMemo(() => {
     let processed = news.filter((item) => {
       const matchesSearch =
@@ -186,34 +226,39 @@ export default function NewsAggregator() {
     );
   }, [news, searchQuery, selectedSource, sortOrder]);
 
-  // Slice visible news items
   const visibleNews = useMemo(() =>
     filteredAndSortedNews.slice(0, visibleItems),
     [filteredAndSortedNews, visibleItems]
   );
 
-  // Handle scroll to load more
   const handleScroll = useCallback(({ nativeEvent }) => {
     const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
-    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 100; // Trigger 100px before bottom
+    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 100;
 
     if (isCloseToBottom && !isLoadingMore && visibleItems < filteredAndSortedNews.length) {
       setIsLoadingMore(true);
-      setTimeout(() => { // Simulate a slight delay for smoother UX
+      setTimeout(() => {
         setVisibleItems((prev) => Math.min(prev + ITEMS_PER_PAGE, filteredAndSortedNews.length));
         setIsLoadingMore(false);
       }, 500);
     }
   }, [isLoadingMore, visibleItems, filteredAndSortedNews.length]);
 
-  // Render TopBar
   const renderTopBar = () => (
-    <TopBar>
+    <TopBar dark={isDark}>
       <XStack space="$3" ai="center" flex={1}>
         {isSearchVisible ? (
           <Input
-            flex={1} placeholder="Search news..." value={searchQuery} onChangeText={setSearchQuery}
-            autoFocus onBlur={() => setIsSearchVisible(false)} size="$4" borderRadius="$6" bg="$backgroundHover"
+            flex={1}
+            placeholder="Search news..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoFocus
+            onBlur={() => setIsSearchVisible(false)}
+            size="$4"
+            borderRadius="$6"
+            bg="$backgroundHover"
+            color="$color"
           />
         ) : (
           <>
@@ -224,7 +269,11 @@ export default function NewsAggregator() {
       </XStack>
       <XStack space="$2">
         <Button
-          icon={<Filter size="$1.5" />} size="$4" circular chromeless disabled={isFiltering}
+          icon={<Filter size="$1.5" />}
+          size="$4"
+          circular
+          chromeless
+          disabled={isFiltering}
           opacity={isFiltering ? 0.5 : 1}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -235,14 +284,17 @@ export default function NewsAggregator() {
     </TopBar>
   );
 
-  // Render News Summary
   const renderNewsSummary = () => (
     <YStack p="$4" space="$3">
-      <StyledAccordion type="multiple" defaultValue={['summary']}>
+      <StyledAccordion type="multiple" defaultValue={['summary']} dark={isDark}>
         <Accordion.Item value="summary">
           <Accordion.Trigger
-            flexDirection="row" justifyContent="space-between" p="$3" backgroundColor="$blue2"
-            hoverStyle={{ backgroundColor: '$blue3' }} pressStyle={{ backgroundColor: '$blue4' }}
+            flexDirection="row"
+            justifyContent="space-between"
+            p="$3"
+            backgroundColor={isDark ? '$blue9' : '$blue2'} // Explicitly set for trigger
+            hoverStyle={{ backgroundColor: '$blue3' }}
+            pressStyle={{ backgroundColor: '$blue4' }}
           >
             {({ open }: { open: boolean }) => (
               <>
@@ -254,7 +306,9 @@ export default function NewsAggregator() {
                   {!summaryLoading && !summaryError && summary && (
                     <Button
                       icon={isPlaying ? <VolumeX size="$1" /> : <Volume2 size="$1" />}
-                      size="$3" circular chromeless
+                      size="$3"
+                      circular
+                      chromeless
                       onPress={(e) => { e.stopPropagation(); handleTextToSpeech(); }}
                     />
                   )}
@@ -265,7 +319,7 @@ export default function NewsAggregator() {
               </>
             )}
           </Accordion.Trigger>
-          <Accordion.Content animation="medium" p="$4" backgroundColor="$blue2">
+          <Accordion.Content animation="medium" p="$4" backgroundColor={isDark ? '$blue9' : '$blue2'}>
             {summaryLoading ? (
               <XStack ai="center" space="$2">
                 <Spinner size="small" color="$blue10" />
@@ -292,7 +346,7 @@ export default function NewsAggregator() {
               bg={selectedSource === source ? '$blue9' : '$backgroundHover'}
               size="$3"
             >
-              <Text color={selectedSource === source ? 'white' : '$color'} fontWeight={selectedSource === source ? '600' : '400'}>
+              <Text color={selectedSource === source ? '$white' : '$color'} fontWeight={selectedSource === source ? '600' : '400'}>
                 {source === 'all' ? 'All Sources' : source}
               </Text>
             </SourceButton>
@@ -302,20 +356,19 @@ export default function NewsAggregator() {
     </YStack>
   );
 
-  // Loading State
   if (loading) {
     return (
-      <YStack flex={1} justifyContent="center" alignItems="center" backgroundColor={isDark ? '$gray1Dark' : '$gray1Light'} space="$4">
+      <NewsContainer dark={isDark} justifyContent="center" alignItems="center" space="$4">
         <YStack animation="bouncy" scale={1} enterStyle={{ scale: 0 }} width={60} height={60} borderRadius={30}
           backgroundColor="$blue10" justifyContent="center" alignItems="center">
-          <Newspaper size="$2" color={isDark ? '$gray1Dark' : '$white'} animation="pulse" animateOnly={['rotate']}
+          <Newspaper size="$2" color="$background" animation="pulse" animateOnly={['rotate']}
             rotate="360deg" animationDuration={2000} />
         </YStack>
         <YStack space="$2" alignItems="center">
-          <Text fontSize="$6" fontWeight="600" color={isDark ? '$gray12' : '$gray11'} animation="quick" opacity={1} enterStyle={{ opacity: 0 }}>
+          <Text fontSize="$6" fontWeight="600" color="$color" animation="quick" opacity={1} enterStyle={{ opacity: 0 }}>
             Loading News
           </Text>
-          <Text fontSize="$3" color={isDark ? '$gray10' : '$gray8'} textAlign="center" maxWidth={240}>
+          <Text fontSize="$3" color="$gray8" textAlign="center" maxWidth={240}>
             Fetching the latest news updates...
           </Text>
         </YStack>
@@ -328,23 +381,21 @@ export default function NewsAggregator() {
         </XStack>
         <Button size="$3" variant="outlined" borderColor="$blue10" color="$blue10" icon={<RefreshCw size="$1" />}
           onPress={fetchNews} marginTop="$4">Refresh Now</Button>
-      </YStack>
+      </NewsContainer>
     );
   }
 
-  // Error State
   if (error) {
     return (
-      <YStack flex={1} justifyContent="center" alignItems="center" backgroundColor={isDark ? '$gray1Dark' : '$gray1Light'} space="$4">
+      <NewsContainer dark={isDark} justifyContent="center" alignItems="center" space="$4">
         <Text color="$red10">{error}</Text>
         <Button size="$4" icon={<RefreshCw />} onPress={fetchNews}>Retry</Button>
-      </YStack>
+      </NewsContainer>
     );
   }
 
-  // Main Render with Infinite Scroll
   return (
-    <NewsContainer>
+    <NewsContainer dark={isDark}>
       {selectedArticle ? (
         <ArticleDetail article={selectedArticle} bookmarkedArticles={bookmarkedArticles} toggleBookmark={toggleBookmark}
           shareArticle={shareArticle} onClose={() => setSelectedArticle(null)} />
@@ -356,7 +407,8 @@ export default function NewsAggregator() {
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             scrollEventThrottle={16}
             onScroll={handleScroll}
-            showsVerticalScrollIndicator={false} // Optional: hide scrollbar for cleaner UX
+            showsVerticalScrollIndicator={false}
+            dark={isDark}
           >
             <YStack space="$4">
               {renderNewsSummary()}
