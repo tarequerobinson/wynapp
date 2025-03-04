@@ -52,6 +52,9 @@ const TopBar = styled(XStack, {
   } as const,
 });
 
+
+
+
 const StyledAccordion = styled(Accordion, {
   name: 'StyledAccordion',
   backgroundColor: '$blue2',
@@ -69,6 +72,160 @@ const SourceButton = styled(Button, {
   borderRadius: '$6',
   pressStyle: { opacity: 0.8, scale: 0.98 },
 });
+
+
+const LoadingScreen = ({ fetchNews }) => {
+  const theme = useTheme();
+  const isDark = theme.name === 'dark';
+  
+  return (
+    <NewsContainer dark={isDark} justifyContent="center" alignItems="center" space="$4">
+      {/* Main animation container */}
+      <YStack 
+        animation="bouncy" 
+        enterStyle={{ scale: 0.8, opacity: 0 }}
+        scale={1}
+        opacity={1}
+        space="$6"
+        width="100%"
+        alignItems="center"
+        padding="$4"
+      >
+        {/* Animated logo container */}
+        <YStack 
+          width={80} 
+          height={80} 
+          borderRadius={40}
+          backgroundColor="$blue10" 
+          justifyContent="center" 
+          alignItems="center"
+          animation="quick"
+          enterStyle={{ rotate: '0deg' }}
+          rotate="8deg"
+          pressStyle={{ scale: 0.97 }}
+        >
+          <Newspaper 
+            size="$3" 
+            color="$background" 
+            animation="pulse" 
+            animateOnly={['rotate', 'scale']}
+            rotate="360deg" 
+            scale={1.1}
+            animationDuration={2200} 
+          />
+        </YStack>
+        
+        {/* Title and subtitle with staggered animations */}
+        <YStack space="$3" alignItems="center">
+          <Text 
+            fontSize="$7" 
+            fontWeight="800" 
+            color="$color" 
+            animation="quick" 
+            opacity={1} 
+            enterStyle={{ opacity: 0, scale: 0.9 }}
+            scale={1}
+          >
+            Latest News
+          </Text>
+          <YStack space="$1" alignItems="center">
+            <Text 
+              fontSize="$4" 
+              color="$gray10" 
+              textAlign="center" 
+              maxWidth={300}
+              animation={{ type: 'timing', duration: 500, delay: 100 }}
+              enterStyle={{ opacity: 0, y: 5 }}
+              opacity={1}
+              y={0}
+            >
+              Gathering today's top stories
+            </Text>
+            <Text 
+              fontSize="$3" 
+              color="$gray8" 
+              textAlign="center" 
+              maxWidth={280}
+              animation={{ type: 'timing', duration: 500, delay: 200 }}
+              enterStyle={{ opacity: 0, y: 5 }}
+              opacity={1}
+              y={0}
+            >
+              From trusted sources across Jamaica
+            </Text>
+          </YStack>
+        </YStack>
+        
+        {/* Animated progress indicators */}
+        <XStack space="$3" marginTop="$2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <YStack 
+              key={i} 
+              width={10} 
+              height={10} 
+              borderRadius={5} 
+              backgroundColor="$blue10" 
+              opacity={0.3}
+              animation={{ 
+                type: 'timing', 
+                loop: true, 
+                duration: 1200, 
+                delay: i * 150 
+              }}
+              animateOnly={['opacity', 'scale']}
+              enterStyle={{ opacity: 0.3, scale: 0.8 }}
+              exitStyle={{ opacity: 0.3, scale: 0.8 }}
+              opacity={1}
+              scale={1}
+            />
+          ))}
+        </XStack>
+        
+        {/* Loading tips with fade in/out animation */}
+        <YStack 
+          marginTop="$4" 
+          padding="$3" 
+          width="85%" 
+          maxWidth={320}
+          borderRadius="$6"
+          backgroundColor={isDark ? "$gray3" : "$blue1"}
+          borderWidth={1}
+          borderColor={isDark ? "$gray4" : "$blue3"}
+          animation={{ type: 'timing', duration: 700, delay: 300 }}
+          enterStyle={{ opacity: 0, scale: 0.95 }}
+          opacity={1}
+          scale={1}
+        >
+          <XStack space="$2" alignItems="center" marginBottom="$2">
+            <Square size="$1" backgroundColor="$blue10" borderRadius="$1" />
+            <Text fontSize="$4" fontWeight="600" color="$blue10">Did you know?</Text>
+          </XStack>
+          <Text fontSize="$3" color="$gray11" lineHeight="$5">
+            Our news summary is generated using AI to help you quickly catch up on the day's top stories.
+          </Text>
+        </YStack>
+      </YStack>
+      
+      {/* Refresh button */}
+      <Button 
+        size="$4" 
+        variant="outlined" 
+        borderColor="$blue10" 
+        color="$blue10" 
+        icon={<RefreshCw size="$1" />}
+        onPress={fetchNews} 
+        marginTop="$6"
+        animation="quick"
+        enterStyle={{ opacity: 0, scale: 0.9, y: 10 }}
+        opacity={1}
+        scale={1}
+        y={0}
+      >
+        Refresh Now
+      </Button>
+    </NewsContainer>
+  );
+};
 
 const debounce = (func, wait) => {
   let timeout;
@@ -142,8 +299,14 @@ export default function NewsAggregator() {
   }, [news, filteredAndSortedNews]);
 
   useEffect(() => { fetchNews(); }, [fetchNews]);
-  useEffect(() => { fetchSummary(); }, [fetchSummary, filteredAndSortedNews]);
-
+  useEffect(() => {
+    // Only fetch summary on initial load or on manual refresh
+    if (news.length > 0 && (refreshing || summary === '')) {
+      fetchSummary();
+    }
+  }, [fetchSummary, news, refreshing]);
+  
+  
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -303,18 +466,27 @@ export default function NewsAggregator() {
                   <Text fontSize="$6" fontWeight="700" color="$blue10">News Summary</Text>
                 </XStack>
                 <XStack space="$2" ai="center">
-                  {!summaryLoading && !summaryError && summary && (
-                    <Button
-                      icon={isPlaying ? <VolumeX size="$1" /> : <Volume2 size="$1" />}
-                      size="$3"
-                      circular
-                      chromeless
-                      onPress={(e) => { e.stopPropagation(); handleTextToSpeech(); }}
-                    />
-                  )}
-                  <Square animation="quick" rotate={open ? '180deg' : '0deg'}>
-                    <ChevronDown size="$1" />
-                  </Square>
+                {!summaryLoading && !summaryError && summary && (
+    <>
+      <Button
+        icon={isPlaying ? <VolumeX size="$1" /> : <Volume2 size="$1" />}
+        size="$3"
+        circular
+        chromeless
+        onPress={(e) => { e.stopPropagation(); handleTextToSpeech(); }}
+      />
+      <Button
+        icon={<RefreshCw size="$1" />}
+        size="$3"
+        circular
+        chromeless
+        onPress={(e) => { e.stopPropagation(); fetchSummary(); }}
+      />
+    </>
+  )}
+  <Square animation="quick" rotate={open ? '180deg' : '0deg'}>
+    <ChevronDown size="$1" />
+  </Square>
                 </XStack>
               </>
             )}
@@ -341,7 +513,7 @@ export default function NewsAggregator() {
               onPress={() => {
                 setSelectedSource(source);
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                fetchSummary();
+                // fetchSummary();
               }}
               bg={selectedSource === source ? '$blue9' : '$backgroundHover'}
               size="$3"
@@ -358,31 +530,12 @@ export default function NewsAggregator() {
 
   if (loading) {
     return (
-      <NewsContainer dark={isDark} justifyContent="center" alignItems="center" space="$4">
-        <YStack animation="bouncy" scale={1} enterStyle={{ scale: 0 }} width={60} height={60} borderRadius={30}
-          backgroundColor="$blue10" justifyContent="center" alignItems="center">
-          <Newspaper size="$2" color="$background" animation="pulse" animateOnly={['rotate']}
-            rotate="360deg" animationDuration={2000} />
-        </YStack>
-        <YStack space="$2" alignItems="center">
-          <Text fontSize="$6" fontWeight="600" color="$color" animation="quick" opacity={1} enterStyle={{ opacity: 0 }}>
-            Loading News
-          </Text>
-          <Text fontSize="$3" color="$gray8" textAlign="center" maxWidth={240}>
-            Fetching the latest news updates...
-          </Text>
-        </YStack>
-        <XStack space="$2">
-          {[1, 2, 3].map((i) => (
-            <YStack key={i} width={8} height={8} borderRadius={4} backgroundColor="$blue10" animation="lazy" opacity={0.3}
-              animateOnly={['opacity']} animation={{ type: 'timing', loop: true, duration: 800, delay: i * 200 }}
-              enterStyle={{ opacity: 0.3 }} exitStyle={{ opacity: 0.3 }} opacity={1} />
-          ))}
-        </XStack>
-        <Button size="$3" variant="outlined" borderColor="$blue10" color="$blue10" icon={<RefreshCw size="$1" />}
-          onPress={fetchNews} marginTop="$4">Refresh Now</Button>
-      </NewsContainer>
-    );
+<>
+
+<LoadingScreen/>
+
+
+</>    );
   }
 
   if (error) {

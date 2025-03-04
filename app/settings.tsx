@@ -10,12 +10,17 @@ import {
   Input,
   Select,
   Checkbox,
-  Label
+  Label 
 } from 'tamagui';
-import { useState } from 'react';
-import { ChevronDown, User, Mail, Lock, DollarSign } from '@tamagui/lucide-icons';
+import { useState, useEffect } from 'react';
+import { ChevronDown, User, Mail, Lock, DollarSign, LogOut } from '@tamagui/lucide-icons';
+import { useRouter } from 'expo-router';
+import { useAuth } from './context/AuthContext';
 
 export default function SettingsScreen() {
+  const router = useRouter();
+  const { isAuthenticated, logout } = useAuth();
+  
   // State management for all profile fields
   const [name, setName] = useState("John Doe");
   const [email, setEmail] = useState("john.doe@example.com");
@@ -27,6 +32,24 @@ export default function SettingsScreen() {
   const [investmentExperience, setInvestmentExperience] = useState("Intermediate");
   const [preferredIndustries, setPreferredIndustries] = useState<string[]>([]);
   const [subscribeMarketUpdates, setSubscribeMarketUpdates] = useState(false);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      console.log('SettingsScreen: Redirecting to / due to unauthenticated user');
+      router.replace('/');
+    }
+  }, [isAuthenticated, router]);
+
+  // Only render settings if authenticated (optional for security)
+  if (!isAuthenticated) {
+    return null; // Prevent rendering until authenticated
+  }
+
+  const handleLogout = () => {
+    logout();
+    router.replace('/');
+  };
 
   const handleIndustryChange = (industry: string) => {
     setPreferredIndustries(prev =>
@@ -50,7 +73,7 @@ export default function SettingsScreen() {
       subscribeMarketUpdates
     });
   };
-
+  
   return (
     <ScrollView>
       <YStack padding="$4" space="$4" backgroundColor="$background">
@@ -177,7 +200,17 @@ export default function SettingsScreen() {
           Update Profile
         </Button>
 
-        <Separator />
+        <Separator marginVertical="$4" />
+
+        {/* Logout Button */}
+        <Button
+          theme="red"
+          borderRadius="$4"
+          onPress={handleLogout}
+          icon={<LogOut size="$1" />}
+        >
+          Logout
+        </Button>
       </YStack>
     </ScrollView>
   );

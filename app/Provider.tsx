@@ -4,6 +4,8 @@ import { TamaguiProvider, type TamaguiProviderProps } from 'tamagui';
 import { ToastProvider, ToastViewport } from '@tamagui/toast';
 import { CurrentToast } from './CurrentToast';
 import { config } from '../tamagui.config';
+import { AuthProvider } from './context/AuthContext';
+
 
 export function Provider({ children, ...rest }: Omit<TamaguiProviderProps, 'config'>) {
   const [themeName, setThemeName] = useState(Appearance.getColorScheme() || 'light');
@@ -16,6 +18,7 @@ export function Provider({ children, ...rest }: Omit<TamaguiProviderProps, 'conf
   }, []);
 
   return (
+    <AuthProvider>
     <TamaguiProvider
       config={config}
       defaultTheme={themeName}
@@ -36,5 +39,6 @@ export function Provider({ children, ...rest }: Omit<TamaguiProviderProps, 'conf
         <ToastViewport top="$8" left={0} right={0} />
       </ToastProvider>
     </TamaguiProvider>
+    </AuthProvider>
   );
 }

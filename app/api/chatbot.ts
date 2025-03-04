@@ -34,11 +34,15 @@ export interface ChatbotApi {
   sendMessage: (prompt: string) => Promise<Message>;
   sendQuickPrompt: (prompt: QuickPrompt) => Promise<Message>;
   uploadAndAnalyzePdf: () => Promise<Message>;
+  clearConversation: () => void; // Added to reset conversation history
 }
 
 // Initialize Google Generative AI with environment variable
 const genAI = new GoogleGenerativeAI(process.env.EXPO_PUBLIC_GEMINI_API_KEY!);
 const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+// Store conversation history
+let conversationHistory: Array<{ role: "user" | "model"; parts: { text: string }[] }> = [];
 
 const parseResponse = (text: string) => {
   if (text.includes("GOAL:") || (text.includes("financial goal") && text.includes("target"))) {
@@ -95,6 +99,22 @@ const parseResponse = (text: string) => {
   return { response: text, status: "success" } as const;
 };
 
+// Base prompt with instructions
+const basePrompt = `You are DSFG's AI Financial Advisor specialized in Jamaican finance.
+      
+When answering, always:
+1. Focus on the Jamaican financial context
+2. Use JMD currency
+3. Reference specific Jamaican financial institutions, markets, and regulations
+4. Provide actionable advice considering the local economic environment
+5. Include relevant local market rates, fees, and costs when applicable
+6. Never give an incomplete response
+7. Never give a black and white answer for any open ended questions because most things are dependent on the variables relevant to the person asking so ask clarifying questions to get a better idea as to how to respond properly
+    
+IMPORTANT: If the user is asking about setting up a financial goal, respond with a structured goal response labeled as "GOAL:" including title, target amount, timeframe, and description.
+    
+IMPORTANT: If the user is asking about setting up a market alert, respond with a structured alert response labeled as "ALERT:" including alert type (price, market, or news), target, condition, and notification method (email, sms, push, in-app).`;
+
 export const chatbotApi: ChatbotApi = {
   sendMessage: async (prompt: string): Promise<Message> => {
     if (!process.env.EXPO_PUBLIC_GEMINI_API_KEY) throw new Error("Gemini API key is not configured");
@@ -106,31 +126,37 @@ export const chatbotApi: ChatbotApi = {
       maxOutputTokens: 1024,
     };
 
-    const fullPrompt = `You are DSFG's AI Financial Advisor specialized in Jamaican finance.
-      
-    When answering, always:
-    1. Focus on the Jamaican financial context
-    2. Use JMD currency
-    3. Reference specific Jamaican financial institutions, markets, and regulations
-    4. Provide actionable advice considering the local economic environment
-    5. Include relevant local market rates, fees, and costs when applicable
-    6. Never give an incomplete response
-    7. Never give a black and white answer for any open ended questions because most things are dependent on the variables relevant to the person asking so ask clarifying questions to get a better idea as to how to respond properly
-    
-    IMPORTANT: If the user is asking about setting up a financial goal, respond with a structured goal response labeled as "GOAL:" including title, target amount, timeframe, and description.
-    
-    IMPORTANT: If the user is asking about setting up a market alert, respond with a structured alert response labeled as "ALERT:" including alert type (price, market, or news), target, condition, and notification method (email, sms, push, in-app).
-    
-    Question: ${prompt}
-    Answer:`;
+    // Add user message to conversation history
+    conversationHistory.push({
+      role: "user",
+      parts: [{ text: prompt }],
+    });
+
+    // Prepare the full content with history and base prompt
+    const fullContent = [
+      { role: "user", parts: [{ text: basePrompt }] },
+      ...conversationHistory,
+    ];
 
     const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
+      contents: fullContent,
       generationConfig,
     });
 
     const responseText = result.response.text();
     const parsedResponse = parseResponse(responseText);
+
+    // Add bot response to conversation history
+    conversationHistory.push({
+      role: "model",
+      parts: [{ text: responseText }],
+    });
+
+    // Trim conversation history if it gets too long (e.g., keep last 10 exchanges)
+    const maxHistoryLength = 20; // 10 exchanges (user + bot)
+    if (conversationHistory.length > maxHistoryLength) {
+      conversationHistory = conversationHistory.slice(-maxHistoryLength);
+    }
 
     let botMessage: Message = {
       id: Date.now().toString(),
@@ -174,31 +200,37 @@ export const chatbotApi: ChatbotApi = {
       maxOutputTokens: 1024,
     };
 
-    const fullPrompt = `You are DSFG's AI Financial Advisor specialized in Jamaican finance.
-      
-    When answering, always:
-    1. Focus on the Jamaican financial context
-    2. Use JMD currency
-    3. Reference specific Jamaican financial institutions, markets, and regulations
-    4. Provide actionable advice considering the local economic environment
-    5. Include relevant local market rates, fees, and costs when applicable
-    6. Never give an incomplete response
-    7. Never give a black and white answer for any open ended questions because most things are dependent on the variables relevant to the person asking so ask clarifying questions to get a better idea as to how to respond properly
-    
-    IMPORTANT: If the user is asking about setting up a financial goal, respond with a structured goal response labeled as "GOAL:" including title, target amount, timeframe, and description.
-    
-    IMPORTANT: If the user is asking about setting up a market alert, respond with a structured alert response labeled as "ALERT:" including alert type (price, market, or news), target, condition, and notification method (email, sms, push, in-app).
-    
-    Question: ${prompt.text}
-    Answer:`;
+    // Add quick prompt to conversation history
+    conversationHistory.push({
+      role: "user",
+      parts: [{ text: prompt.text }],
+    });
+
+    // Prepare the full content with history and base prompt
+    const fullContent = [
+      { role: "user", parts: [{ text: basePrompt }] },
+      ...conversationHistory,
+    ];
 
     const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
+      contents: fullContent,
       generationConfig,
     });
 
     const responseText = result.response.text();
     const parsedResponse = parseResponse(responseText);
+
+    // Add bot response to conversation history
+    conversationHistory.push({
+      role: "model",
+      parts: [{ text: responseText }],
+    });
+
+    // Trim conversation history if it gets too long
+    const maxHistoryLength = 20; // 10 exchanges (user + bot)
+    if (conversationHistory.length > maxHistoryLength) {
+      conversationHistory = conversationHistory.slice(-maxHistoryLength);
+    }
 
     let botMessage: Message = {
       id: Date.now().toString(),
@@ -261,15 +293,25 @@ export const chatbotApi: ChatbotApi = {
         "reason": "This document contains... You can ask about..."
       }`;
 
-      const resultAnalysis = await model.generateContent([
+      // For PDF analysis, include conversation history for context
+      const fullContent = [
+        { role: "user", parts: [{ text: basePrompt }] },
+        ...conversationHistory,
         {
-          inlineData: {
-            data: base64Data,
-            mimeType: "application/pdf",
-          },
+          role: "user",
+          parts: [
+            { text: prompt },
+            {
+              inlineData: {
+                data: base64Data,
+                mimeType: "application/pdf",
+              },
+            },
+          ],
         },
-        prompt,
-      ]);
+      ];
+
+      const resultAnalysis = await model.generateContent(fullContent);
 
       const analysisText = resultAnalysis.response.text();
       let analysis;
@@ -284,6 +326,24 @@ export const chatbotApi: ChatbotApi = {
           confidence: 0,
           reason: "Unable to analyze document content. Please ensure it contains financial information.",
         };
+      }
+
+      // Add PDF analysis request and response to conversation history
+      conversationHistory.push(
+        {
+          role: "user",
+          parts: [{ text: "Uploaded and analyzed a PDF document" }],
+        },
+        {
+          role: "model",
+          parts: [{ text: analysisText }],
+        }
+      );
+
+      // Trim conversation history
+      const maxHistoryLength = 20;
+      if (conversationHistory.length > maxHistoryLength) {
+        conversationHistory = conversationHistory.slice(-maxHistoryLength);
       }
 
       return {
@@ -307,5 +367,9 @@ export const chatbotApi: ChatbotApi = {
         type: 'pdf-response',
       };
     }
+  },
+
+  clearConversation: () => {
+    conversationHistory = [];
   },
 };

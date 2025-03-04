@@ -11,6 +11,7 @@ import {
   useTheme,
   styled,
   Input,
+  View,
 } from 'tamagui';
 import {
   Timer,
@@ -46,10 +47,11 @@ import { ChatbotUIProps, Message, ChatHistoryItem } from './types';
 const ChatContainer = styled(YStack, {
   name: 'ChatContainer',
   flex: 1,
-  backgroundColor: '$background',
+  backgroundColor: '$background', // Light mode default
+  opacity: 1, // Lock opacity to prevent bleed-through
   variants: {
     dark: {
-      true: { backgroundColor: '$gray1Dark' },
+      true: { backgroundColor: '$gray2Dark' }, // Slightly lighter than $gray1Dark for contrast
     },
   },
 });
@@ -57,23 +59,10 @@ const ChatContainer = styled(YStack, {
 const ChatScrollView = styled(ScrollView, {
   name: 'ChatScrollView',
   backgroundColor: '$background',
+  opacity: 1, // Ensure solid background
   variants: {
     dark: {
-      true: { backgroundColor: '$gray1Dark' },
-    },
-  },
-});
-
-const ShowcaseContainer = styled(XStack, {
-  name: 'ShowcaseContainer',
-  padding: '$1', // Smaller padding than before
-  space: '$1', // Tighter spacing between buttons
-  flexWrap: 'wrap', // Allows buttons to wrap to the next line if needed
-  justifyContent: 'center', // Centers buttons horizontally
-  backgroundColor: '$gray2',
-  variants: {
-    dark: {
-      true: { backgroundColor: '$gray3Dark' },
+      true: { backgroundColor: '$gray2Dark' }, // Match ChatContainer
     },
   },
 });
@@ -85,6 +74,7 @@ const DisclaimerCard = styled(Card, {
   borderRadius: '$4',
   flex: 1,
   elevation: '$1',
+  opacity: 1,
   variants: {
     dark: {
       true: { 
@@ -98,63 +88,13 @@ const DisclaimerCard = styled(Card, {
 const MessageContainer = styled(YStack, {
   name: 'MessageContainer',
   space: '$1',
+  backgroundColor: 'transparent', // Avoid background overlap
+  opacity: 1,
   variants: {
     dark: {
-      true: { backgroundColor: '$gray1Dark' },
+      true: { backgroundColor: 'transparent' }, // No extra layer in dark mode
     },
   },
-});
-
-const StyledButton = styled(Button, {
-  name: 'StyledButton',
-  borderRadius: '$3', // Smaller, tighter corners
-  paddingHorizontal: '$2', // Reduced padding for compactness
-  paddingVertical: '$1',
-  justifyContent: 'center', // Center icon and text
-  pressStyle: { opacity: 0.85 },
-  variants: {
-    variant: {
-      green: {
-        backgroundColor: '$green3Light',
-        borderColor: '$green7',
-        borderWidth: 1,
-        hoverStyle: { backgroundColor: '$green4Light' },
-      },
-      yellow: {
-        backgroundColor: '$yellow3Light',
-        borderColor: '$yellow7',
-        borderWidth: 1,
-        hoverStyle: { backgroundColor: '$yellow4Light' },
-      },
-      gray: {
-        backgroundColor: '$gray3Light',
-        borderColor: '$gray7',
-        borderWidth: 1,
-        hoverStyle: { backgroundColor: '$gray4Light' },
-      },
-    },
-    dark: {
-      true: {
-        variant: {
-          green: {
-            backgroundColor: '$green3Dark',
-            borderColor: '$green9',
-            hoverStyle: { backgroundColor: '$green4Dark' },
-          },
-          yellow: {
-            backgroundColor: '$yellow3Dark',
-            borderColor: '$yellow9',
-            hoverStyle: { backgroundColor: '$yellow4Dark' },
-          },
-          gray: {
-            backgroundColor: '$gray3Dark',
-            borderColor: '$gray9',
-            hoverStyle: { backgroundColor: '$gray4Dark' },
-          },
-        },
-      },
-    },
-  } as const,
 });
 
 const TypingIndicator = styled(XStack, {
@@ -169,6 +109,164 @@ const TypingIndicator = styled(XStack, {
     },
   },
 });
+
+const ShowcaseContainer = styled(View, {
+  flexDirection: 'row',
+  justifyContent: 'space-around',
+  paddingVertical: 12,
+  paddingHorizontal: 16,
+  backgroundColor: 'transparent',
+  gap: 12,
+  width: '100%',
+  variants: {
+    dark: {
+      true: {
+        backgroundColor: '$gray1',
+        borderColor: '$gray3',
+      },
+      false: {
+        backgroundColor: '$gray0',
+        borderColor: '$gray2',
+      },
+    },
+  },
+});
+
+const StyledButton = styled(View, {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: 8,
+  paddingHorizontal: 16,
+  paddingVertical: 10,
+  gap: 8,
+  flex: 1,
+  variants: {
+    size: {
+      '$2': {
+        height: 40,
+      },
+    },
+    variant: {
+      green: {
+        backgroundColor: '$green2',
+        borderWidth: 1,
+        borderColor: '$green4',
+      },
+      yellow: {
+        backgroundColor: '$yellow2',
+        borderWidth: 1,
+        borderColor: '$yellow4',
+      },
+      gray: {
+        backgroundColor: '$gray2',
+        borderWidth: 1,
+        borderColor: '$gray4',
+      },
+    },
+    dark: {
+      true: {
+        green: {
+          backgroundColor: '$green3',
+          borderColor: '$green5',
+        },
+        yellow: {
+          backgroundColor: '$yellow3',
+          borderColor: '$yellow5',
+        },
+        gray: {
+          backgroundColor: '$gray3',
+          borderColor: '$gray5',
+        },
+      },
+    },
+  },
+});
+
+const ButtonText = styled(Text, {
+  fontWeight: '500',
+  variants: {
+    variant: {
+      green: { color: '$green10' },
+      yellow: { color: '$yellow10' },
+      gray: { color: '$gray10' },
+    },
+    dark: {
+      true: {
+        green: { color: '$green11' },
+        yellow: { color: '$yellow11' },
+        gray: { color: '$gray12' },
+      },
+    },
+  },
+});
+
+const IconWrapper = styled(View, {
+  opacity: 0.9,
+});
+
+const ButtonShowcase = ({ isDark, setShowShowcase, setMessages, handleUpload }) => {
+  const handleButtonPress = (type, message) => {
+    setShowShowcase(false);
+    if (message) {
+      setMessages((prev) => [
+        ...prev,
+        { 
+          id: Date.now().toString(), 
+          text: message, 
+          sender: 'bot', 
+          timestamp: new Date(), 
+          status: 'sent', 
+          type: 'regular' 
+        },
+      ]);
+    }
+    if (type === 'upload' && handleUpload) {
+      handleUpload();
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+  
+  return (
+    <ShowcaseContainer dark={isDark}>
+      <StyledButton
+        size="$2"
+        variant="green"
+        dark={isDark}
+        onPress={() => handleButtonPress('goals', "You can set goals by chatting with me!")}
+      >
+        <IconWrapper>
+          <Timer size={16} color={isDark ? '$green11' : '$green10'} />
+        </IconWrapper>
+        <ButtonText fontSize="$2" variant="green" dark={isDark}>Goals</ButtonText>
+      </StyledButton>
+
+      <StyledButton
+        size="$2"
+        variant="yellow"
+        dark={isDark}
+        onPress={() => handleButtonPress('alerts', "You can set alerts for important events!")}
+      >
+        <IconWrapper>
+          <Bell size={16} color={isDark ? '$yellow11' : '$yellow10'} />
+        </IconWrapper>
+        <ButtonText fontSize="$2" variant="yellow" dark={isDark}>Alerts</ButtonText>
+      </StyledButton>
+
+      <StyledButton
+        size="$2"
+        variant="gray"
+        dark={isDark}
+        onPress={() => handleButtonPress('upload', null)}
+      >
+        <IconWrapper>
+          <File size={16} color={isDark ? '$gray12' : '$gray10'} />
+        </IconWrapper>
+        <ButtonText fontSize="$2" variant="gray" dark={isDark}>Docs</ButtonText>
+      </StyledButton>
+    </ShowcaseContainer>
+  );
+};
 
 export const ChatbotUI = memo(({
   initialMessage = "Hello! I'm your AI assistant. How can I help you today?",
@@ -458,7 +556,6 @@ export const ChatbotUI = memo(({
           onEditGoal={setEditingGoal}
           onConfirmAlert={handleConfirmAlert}
           onEditAlert={setEditingAlert}
-          dark={isDark}
         />
       ))}
       {isTyping && (
@@ -474,7 +571,6 @@ export const ChatbotUI = memo(({
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // Simulate refresh
     setTimeout(() => {
       setRefreshing(false);
     }, 2000);
@@ -491,54 +587,12 @@ export const ChatbotUI = memo(({
       />
 
       {showShowcase && (
-        <ShowcaseContainer dark={isDark}>
-          <StyledButton
-            size="$2" // Back to original small size
-            variant="green"
-            dark={isDark}
-            onPress={() => {
-              setShowShowcase(false);
-              setMessages((prev) => [
-                ...prev,
-                { id: Date.now().toString(), text: "You can set goals by chatting with me!", sender: 'bot', timestamp: new Date(), status: 'sent', type: 'regular' },
-              ]);
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            }}
-            icon={<Timer size={14} color={isDark ? '$green9' : '$green7'} />} // Smaller icon
-          >
-            <Text fontSize="$2" color={isDark ? '$green9' : '$green7'}>Goals</Text> {/* Shortened text */}
-          </StyledButton>
-
-          <StyledButton
-            size="$2"
-            variant="yellow"
-            dark={isDark}
-            onPress={() => {
-              setShowShowcase(false);
-              setMessages((prev) => [
-                ...prev,
-                { id: Date.now().toString(), text: "You can set alerts for important events!", sender: 'bot', timestamp: new Date(), status: 'sent', type: 'regular' },
-              ]);
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            }}
-            icon={<Bell size={14} color={isDark ? '$yellow9' : '$yellow7'} />}
-          >
-            <Text fontSize="$2" color={isDark ? '$yellow9' : '$yellow7'}>Alerts</Text> {/* Shortened text */}
-          </StyledButton>
-
-          <StyledButton
-            size="$2"
-            variant="gray"
-            dark={isDark}
-            onPress={() => {
-              setShowShowcase(false);
-              handleUpload();
-            }}
-            icon={<File size={14} color={isDark ? '$gray9' : '$gray7'} />}
-          >
-            <Text fontSize="$2" color={isDark ? '$gray9' : '$gray7'}>Docs</Text> {/* Shortened text */}
-          </StyledButton>
-        </ShowcaseContainer>
+        <ButtonShowcase 
+          isDark={isDark} 
+          setShowShowcase={setShowShowcase} 
+          setMessages={setMessages} 
+          handleUpload={handleUpload}
+        />
       )}
 
       {showDisclaimer && (

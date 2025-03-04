@@ -75,8 +75,8 @@ export const MessageBubble = memo(({
       {/* Bot Icon */}
       {message.sender === 'bot' && (
         <BotMessageSquare
-          size={24} // Slightly larger for visibility
-          color={isDark ? '$gray10' : '$gray9'} // Adjusts with theme
+          size={24}
+          color={isDark ? '$gray10' : '$gray9'}
           marginRight="$3"
         />
       )}
@@ -90,6 +90,7 @@ export const MessageBubble = memo(({
             borderTopRightRadius="$1"
             padding="$3"
             elevation={isDark ? 1 : 0}
+            opa={1} // Ensure no transparency
           >
             <Text color="$white" fontSize="$4" lineHeight="$5">
               {message.text}
@@ -102,26 +103,27 @@ export const MessageBubble = memo(({
           <>
             {message.type === 'goal' && message.goalData ? (
               <Card
-                backgroundColor={isDark ? '$green9' : '$green7'}
+                backgroundColor={isDark ? '$green6' : '$green5'} // Bright, saturated green
                 borderRadius="$5"
                 padding="$4"
-                elevation={isDark ? 2 : 0}
+                elevation={isDark ? 3 : 2} // Higher elevation for dark mode
                 borderWidth={1}
-                borderColor="$green6"
+                borderColor={isDark ? '$green5' : '$green4'} // Vivid border
+                opa={1} // Force solid color
               >
                 <YStack space="$2">
                   <XStack alignItems="center" space="$2">
-                    <Timer size={16} color="$green7" />
-                    <Text fontSize="$4" fontWeight="600" color="$green7">
+                    <Timer size={16} color={isDark ? '$green8' : '$green7'} />
+                    <Text fontSize="$4" fontWeight="600" color={isDark ? '$green8' : '$green7'}>
                       Goal Detected
                     </Text>
                   </XStack>
-                  <Text fontSize="$5" fontWeight="700" color="$white">
+                  <Text fontSize="$5" fontWeight="700" color={isDark ? '$white' : '$gray1'}>
                     {message.goalData.title}
                   </Text>
                   <Markdown
                     style={{
-                      body: { color: '$gray12', fontSize: 15, lineHeight: 22 },
+                      body: { color: isDark ? '$gray11' : '$gray12', fontSize: 15, lineHeight: 22 },
                       code_block: { backgroundColor: '$gray4', padding: 8, borderRadius: 4 },
                       code_inline: { backgroundColor: '$gray4', padding: 2, borderRadius: 2 },
                       link: { color: '$blue9' },
@@ -130,17 +132,17 @@ export const MessageBubble = memo(({
                     {message.text}
                   </Markdown>
                   <XStack space="$3" flexWrap="wrap">
-                    <Text color="$gray6">
+                    <Text color={isDark ? '$gray7' : '$gray6'}>
                       Target: <Text fontWeight="600">${message.goalData.target.toLocaleString()} JMD</Text>
                     </Text>
-                    <Text color="$gray6">
+                    <Text color={isDark ? '$gray7' : '$gray6'}>
                       Timeframe: <Text fontWeight="600">{message.goalData.timeframe}</Text>
                     </Text>
                   </XStack>
                   <XStack space="$2" marginTop="$2">
                     <Button
                       size="$3"
-                      backgroundColor="$green8"
+                      backgroundColor={isDark ? '$green7' : '$green6'}
                       color="$white"
                       borderRadius="$3"
                       onPress={() => onConfirmGoal?.(message.goalData)}
@@ -150,8 +152,8 @@ export const MessageBubble = memo(({
                     <Button
                       size="$3"
                       variant="outlined"
-                      borderColor="$green8"
-                      color="$green8"
+                      borderColor={isDark ? '$green7' : '$green6'}
+                      color={isDark ? '$green7' : '$green6'}
                       borderRadius="$3"
                       onPress={() => onEditGoal?.(message.goalData)}
                     >
@@ -162,26 +164,27 @@ export const MessageBubble = memo(({
               </Card>
             ) : message.type === 'alert' && message.alertData ? (
               <Card
-                backgroundColor={isDark ? '$yellow9' : '$yellow7'}
+                backgroundColor={isDark ? '$yellow6' : '$yellow5'} // Vivid, popping yellow
                 borderRadius="$5"
                 padding="$4"
-                elevation={isDark ? 2 : 0}
+                elevation={isDark ? 3 : 2}
                 borderWidth={1}
-                borderColor="$yellow6"
+                borderColor={isDark ? '$yellow5' : '$yellow4'} // Bright border
+                opa={1} // No transparency
               >
                 <YStack space="$2">
                   <XStack alignItems="center" space="$2">
-                    <AlertTriangle size={16} color="$yellow7" />
-                    <Text fontSize="$4" fontWeight="600" color="$yellow7">
+                    <AlertTriangle size={16} color={isDark ? '$yellow8' : '$yellow7'} />
+                    <Text fontSize="$4" fontWeight="600" color={isDark ? '$yellow8' : '$yellow7'}>
                       Alert Suggestion
                     </Text>
                   </XStack>
-                  <Text fontSize="$5" fontWeight="700" color="$white">
+                  <Text fontSize="$5" fontWeight="700" color={isDark ? '$white' : '$gray1'}>
                     {message.alertData.type.charAt(0).toUpperCase() + message.alertData.type.slice(1)} Alert
                   </Text>
                   <Markdown
                     style={{
-                      body: { color: '$gray12', fontSize: 15, lineHeight: 22 },
+                      body: { color: isDark ? '$gray11' : '$gray12', fontSize: 15, lineHeight: 22 },
                       code_block: { backgroundColor: '$gray4', padding: 8, borderRadius: 4 },
                       code_inline: { backgroundColor: '$gray4', padding: 2, borderRadius: 2 },
                       link: { color: '$blue9' },
@@ -190,17 +193,17 @@ export const MessageBubble = memo(({
                     {message.text}
                   </Markdown>
                   <YStack space="$1">
-                    <Text color="$gray6">
+                    <Text color={isDark ? '$gray7' : '$gray6'}>
                       When: <Text fontWeight="600">{message.alertData.target} {message.alertData.condition}</Text>
                     </Text>
-                    <Text color="$gray6">
+                    <Text color={isDark ? '$gray7' : '$gray6'}>
                       Notify via: <Text fontWeight="600">{message.alertData.notificationMethod.join(', ')}</Text>
                     </Text>
                   </YStack>
                   <XStack space="$2" marginTop="$2">
                     <Button
                       size="$3"
-                      backgroundColor="$yellow8"
+                      backgroundColor={isDark ? '$yellow7' : '$yellow6'}
                       color="$white"
                       borderRadius="$3"
                       onPress={() => onConfirmAlert?.(message.alertData)}
@@ -210,8 +213,8 @@ export const MessageBubble = memo(({
                     <Button
                       size="$3"
                       variant="outlined"
-                      borderColor="$yellow8"
-                      color="$yellow8"
+                      borderColor={isDark ? '$yellow7' : '$yellow6'}
+                      color={isDark ? '$yellow7' : '$yellow6'}
                       borderRadius="$3"
                       onPress={() => onEditAlert?.(message.alertData)}
                     >
@@ -226,6 +229,7 @@ export const MessageBubble = memo(({
                 borderRadius="$5"
                 padding="$3"
                 elevation={isDark ? 1 : 0}
+                opa={1}
               >
                 <Text
                   color={isDark ? '$gray11' : '$gray12'}

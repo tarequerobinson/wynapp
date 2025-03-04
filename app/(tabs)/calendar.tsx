@@ -1,19 +1,23 @@
-// app/(tabs)/calendar.tsx
+// app/(tabs)/calendar.tsx (final version)
 import React, { useState, useEffect, useMemo } from 'react';
+import { Animated } from 'react-native'; // Added Animated for loading animation
 import { Calendar } from 'react-native-calendars';
-import { YStack, XStack, Text, Button, ScrollView, styled, Theme, Card } from 'tamagui';
+import { YStack, XStack, Text, Button, ScrollView, styled, Theme, Card, useTheme, H4 } from 'tamagui'; // Added useTheme, H4
 import { 
   Calendar as CalendarIcon, 
-  DollarSign, Users,FileText, Briefcase, Info,
+  DollarSign, Users, FileText, Briefcase, Info,
   List, 
   RefreshCw, 
   Bell
 } from '@tamagui/lucide-icons';
 import { format, isSameDay, isToday, isBefore, isAfter } from 'date-fns';
 import { useColorScheme, Alert } from 'react-native';
+import * as Haptics from 'expo-haptics'; // Added for haptic feedback in TopBar
 import { fetchJseEvents, ExtractedEvent } from '@/api/calendar-events';
-import { EventSheet } from '@/components/common/EventSheet'; // Updated import path
+import { EventSheet } from '@/components/common/EventSheet'; // Kept as imported
 import { colors } from '@/utils/colors';
+
+// Keep ListView exactly as defined
 const ListView = ({
   events,
   isDark,
@@ -85,6 +89,7 @@ const ListView = ({
   );
 };
 
+// Keep EventCard as defined
 const EventCard = styled(Card, {
   borderRadius: '$4',
   padding: '$3',
@@ -113,6 +118,7 @@ const EventCard = styled(Card, {
   } as const,
 });
 
+// Keep EventTypeIndicator as defined
 const EventTypeIndicator = styled(XStack, {
   paddingHorizontal: '$2',
   paddingVertical: '$1',
@@ -131,6 +137,7 @@ const EventTypeIndicator = styled(XStack, {
   } as const,
 });
 
+// Keep eventIcons as defined
 const eventIcons = {
   dividend: DollarSign,
   meeting: Users,
@@ -138,7 +145,112 @@ const eventIcons = {
   corporate: Briefcase,
   other: Info,
 } as const;
+
+// New styled container for theme consistency
+const CalendarContainer = styled(YStack, {
+  flex: 1,
+  backgroundColor: '$background',
+  variants: {
+    dark: { true: { backgroundColor: '$gray1Dark' } },
+  } as const,
+});
+
+// New TopBar component
+const TopBar = styled(XStack, {
+  height: 56,
+  paddingHorizontal: '$4',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  backgroundColor: '$background',
+  borderBottomWidth: 1,
+  borderBottomColor: '$borderColor',
+  variants: {
+    dark: { true: { backgroundColor: '$gray1Dark', borderBottomColor: '$gray5Dark' } },
+  } as const,
+});
+
+// New LoadingScreen with animation from second version
+const AnimatedYStack = Animated.createAnimatedComponent(YStack);
+
+const LoadingScreen = ({ fetchEvents }: { fetchEvents: () => void }) => {
+  const theme = useTheme();
+  const isDark = theme.name === 'dark';
+
+  return (
+    <CalendarContainer dark={isDark} justifyContent="center" alignItems="center" space="$4">
+      <YStack animation="bouncy" enterStyle={{ scale: 0.8, opacity: 0 }} scale={1} opacity={1} space="$6" alignItems="center">
+        <YStack
+          width={80}
+          height={80}
+          borderRadius={40}
+          backgroundColor="$blue10"
+          justifyContent="center"
+          alignItems="center"
+          animation="quick"
+          enterStyle={{ rotate: '0deg' }}
+          rotate="8deg"
+        >
+          <CalendarIcon
+            size="$3"
+            color="$background"
+            animation="pulse"
+            animateOnly={['rotate', 'scale']}
+            rotate="360deg"
+            scale={1.1}
+            animationDuration={2200}
+          />
+        </YStack>
+        <YStack space="$3" alignItems="center">
+          <Text fontSize="$7" fontWeight="800" color="$color" animation="quick" enterStyle={{ opacity: 0, scale: 0.9 }}>
+            Calendar Events
+          </Text>
+          <Text
+            fontSize="$4"
+            color="$gray10"
+            textAlign="center"
+            maxWidth={300}
+            animation={{ type: 'timing', duration: 500, delay: 100 }}
+            enterStyle={{ opacity: 0, y: 5 }}
+          >
+            Loading the latest JSE events...
+          </Text>
+        </YStack>
+        <XStack space="$3" marginTop="$2">
+          {[1, 2, 3, 4].map((i) => (
+            <YStack
+              key={i}
+              width={10}
+              height={10}
+              borderRadius={5}
+              backgroundColor="$blue10"
+              opacity={0.3}
+              animation={{ type: 'timing', loop: true, duration: 1000, delay: i * 150 }}
+              animateOnly={['opacity', 'scale']}
+              enterStyle={{ opacity: 0.3, scale: 0.8 }}
+              opacity={1}
+              scale={1}
+            />
+          ))}
+        </XStack>
+      </YStack>
+      <Button
+        size="$4"
+        variant="outlined"
+        borderColor="$blue10"
+        color="$blue10"
+        icon={<RefreshCw size="$1" />}
+        onPress={fetchEvents}
+        animation="quick"
+        enterStyle={{ opacity: 0, scale: 0.9, y: 10 }}
+      >
+        Refresh Now
+      </Button>
+    </CalendarContainer>
+  );
+};
+
 export default function BusinessCalendarScreen() {
+  const theme = useTheme(); // For modern theme handling
   const systemColorScheme = useColorScheme();
   const [isDark, setIsDark] = useState(systemColorScheme === 'dark');
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -175,22 +287,20 @@ export default function BusinessCalendarScreen() {
 
   const currentColors = useMemo(() => (isDark ? colors.dark : colors.light), [isDark]);
 
-  const calendarTheme = {
+  const calendarTheme = useMemo(() => ({
     backgroundColor: 'transparent',
     calendarBackground: 'transparent',
-    textSectionTitleColor: currentColors.textSecondary,
-    selectedDayBackgroundColor: currentColors.primary,
-    selectedDayTextColor: currentColors.background,
-    todayTextColor: currentColors.today,
-    dayTextColor: currentColors.text,
+    textSectionTitleColor: theme.gray10?.val || currentColors.textSecondary, // Fallback to original
+    selectedDayBackgroundColor: theme.blue10?.val || currentColors.primary,
+    selectedDayTextColor: theme.background?.val || currentColors.background,
+    todayTextColor: theme.blue9?.val || currentColors.today,
+    dayTextColor: theme.color?.val || currentColors.text,
     textDisabledColor: '$gray8',
-    dotColor: currentColors.primary,
-    monthTextColor: currentColors.text,
+    dotColor: theme.blue10?.val || currentColors.primary,
+    monthTextColor: theme.color?.val || currentColors.text,
     textMonthFontWeight: '600',
-    arrowColor: currentColors.textSecondary,
-  };
-
-  const getEventsForDate = (date: Date) => events.filter(event => isSameDay(event.eventDate, date));
+    arrowColor: theme.gray10?.val || currentColors.textSecondary,
+  }), [theme, isDark]);
 
   const markedDates = useMemo(() => {
     const dates: { [key: string]: any } = {};
@@ -200,176 +310,85 @@ export default function BusinessCalendarScreen() {
         marked: true,
         dotColor: currentColors.types[event.type],
         selected: isSameDay(event.eventDate, selectedDate),
-        selectedColor: currentColors.primary,
+        selectedColor: theme.blue10?.val || currentColors.primary,
       };
     });
     return dates;
-  }, [events, selectedDate, isDark]);
+  }, [events, selectedDate, isDark, theme]);
 
   const setEventAlert = (event: ExtractedEvent) => {
     Alert.alert("Alert Set", `Would set notification for ${event.title} on ${format(event.eventDate, 'MMM d, yyyy')}`);
   };
 
+  const renderTopBar = () => (
+    <TopBar dark={isDark}>
+      <XStack alignItems="center" space="$2">
+        <CalendarIcon size={20} color={theme.blue10?.val} />
+        <H4 color="$color" fontSize="$6" fontWeight="800">Calendar</H4>
+      </XStack>
+      <XStack space="$2">
+        <Button
+          size="$3"
+          circular
+          chromeless
+          icon={isListView ? <CalendarIcon size="$1.5" /> : <List size="$1.5" />}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setIsListView(!isListView);
+          }}
+        />
+        <Button
+          size="$3"
+          circular
+          chromeless
+          icon={<RefreshCw size="$1.5" />}
+          onPress={fetchEvents}
+        />
+      </XStack>
+    </TopBar>
+  );
+
   if (loading) {
-    return (
-      <Theme name={isDark ? 'dark' : 'light'}>
-        <YStack 
-          flex={1} 
-          justifyContent="center" 
-          alignItems="center" 
-          backgroundColor={currentColors.background}
-          space="$4"
-        >
-          {/* Animated Spinner */}
-          <YStack
-            animation="bouncy"
-            scale={1}
-            enterStyle={{ scale: 0 }}
-            width={60}
-            height={60}
-            borderRadius={30}
-            backgroundColor={currentColors.primary}
-            justifyContent="center"
-            alignItems="center"
-          >
-            <CalendarIcon 
-              size="$2" 
-              color={currentColors.background}
-              animation="pulse"
-              animateOnly={['rotate']}
-              rotate="360deg"
-              animationDuration={2000}
-            />
-          </YStack>
-  
-          {/* Loading Text */}
-          <YStack space="$2" alignItems="center">
-            <Text 
-              fontSize="$6"
-              fontWeight="600"
-              color={currentColors.text}
-              animation="quick"
-              opacity={1}
-              enterStyle={{ opacity: 0 }}
-            >
-              Loading Events
-            </Text>
-            <Text 
-              fontSize="$3"
-              color={currentColors.textSecondary}
-              textAlign="center"
-              maxWidth={240}
-            >
-              Fetching the latest calendar updates...
-            </Text>
-          </YStack>
-  
-          {/* Progress Dots */}
-          <XStack space="$2">
-            {[1, 2, 3].map((i) => (
-              <YStack
-                key={i}
-                width={8}
-                height={8}
-                borderRadius={4}
-                backgroundColor={currentColors.primary}
-                animation="lazy"
-                opacity={0.3}
-                animateOnly={['opacity']}
-                animation={{
-                  type: 'timing',
-                  loop: true,
-                  duration: 800,
-                  delay: i * 200,
-                }}
-                enterStyle={{ opacity: 0.3 }}
-                exitStyle={{ opacity: 0.3 }}
-                opacity={1}
-              />
-            ))}
-          </XStack>
-  
-          {/* Refresh Button */}
-          <Button
-            size="$3"
-            variant="outlined"
-            borderColor={currentColors.primary}
-            color={currentColors.primary}
-            icon={<RefreshCw size="$1" />}
-            onPress={fetchEvents}
-            marginTop="$4"
-          >
-            Refresh Now
-          </Button>
-        </YStack>
-      </Theme>
-    );
+    return <LoadingScreen fetchEvents={fetchEvents} />;
   }
 
-  
   if (error) {
     return (
-      <YStack flex={1} justifyContent="center" alignItems="center" backgroundColor={currentColors.background} space="$4">
+      <CalendarContainer dark={isDark} justifyContent="center" alignItems="center" space="$4">
         <Text color="$red10">{error}</Text>
         <Button size="$4" icon={<RefreshCw />} onPress={fetchEvents}>Retry</Button>
-      </YStack>
+      </CalendarContainer>
     );
   }
 
   return (
-    <Theme name={isDark ? 'dark' : 'light'}>
-      <YStack flex={1} backgroundColor={currentColors.background}>
-        <XStack 
-          padding="$4"
-          alignItems="center"
-          justifyContent="space-between"
-          borderBottomWidth={1}
-          borderBottomColor={currentColors.border}
-        >
-          <Text fontSize="$8" fontWeight="600" color={currentColors.text}>Calendar</Text>
-          <XStack space="$2">
-            <Button 
-              size="$3" 
-              chromeless 
-              icon={isListView ? CalendarIcon : List} 
-              onPress={() => setIsListView(!isListView)}
-            />
-            <Button 
-              size="$3" 
-              chromeless 
-              icon={<RefreshCw />} 
-              onPress={fetchEvents}
-            />
-          </XStack>
-        </XStack>
-
-        {isListView ? (
-          <ListView events={events} isDark={isDark} setEventAlert={setEventAlert} />
-        ) : (
-          <YStack padding="$3" flex={1}>
-            <Calendar
-              markedDates={markedDates}
-              onDayPress={(day) => {
-                const selected = new Date(day.year, day.month - 1, day.day);
-                console.log('Tapped date:', selected);
-                setSelectedDate(selected);
-                setShowEventSheet(true);
-                console.log('Sheet should open');
-              }}
-              theme={calendarTheme}
-            />
-          </YStack>
-        )}
-
-        <EventSheet
-          open={showEventSheet}
-          onOpenChange={setShowEventSheet}
-          selectedDate={selectedDate}
-          events={events}
-          isDark={isDark}
-          setEventAlert={setEventAlert}
-        />
-      </YStack>
-    </Theme>
+    <CalendarContainer dark={isDark}>
+      {renderTopBar()}
+      {isListView ? (
+        <ListView events={events} isDark={isDark} setEventAlert={setEventAlert} />
+      ) : (
+        <YStack padding="$3" flex={1}>
+          <Calendar
+            markedDates={markedDates}
+            onDayPress={(day) => {
+              const selected = new Date(day.year, day.month - 1, day.day);
+              console.log('Tapped date:', selected);
+              setSelectedDate(selected);
+              setShowEventSheet(true);
+              console.log('Sheet should open');
+            }}
+            theme={calendarTheme}
+          />
+        </YStack>
+      )}
+      <EventSheet
+        open={showEventSheet}
+        onOpenChange={setShowEventSheet}
+        selectedDate={selectedDate}
+        events={events}
+        isDark={isDark}
+        setEventAlert={setEventAlert}
+      />
+    </CalendarContainer>
   );
 }
